@@ -33,10 +33,12 @@ def processThread():
     while (True):
         # Retira a próxima operação da fila
         item = queue.get(block = True)
+        item[0] = struct.pack("B",item[0])
+        print(item)
 
         # Verifica a operação a ser realizada
         if (item[0] == COMMAND_PRUserial485_open):
-            res = PRUserial485_open(mode = item[1][0], baudrate = struct.unpack(">I", item[1][1:]))
+            res = PRUserial485_open(baudrate = struct.unpack(">I", item[1][1:]),mode = item[1][0])
             connection.sendall(ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_address):
