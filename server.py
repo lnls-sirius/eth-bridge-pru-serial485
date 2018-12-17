@@ -176,5 +176,5 @@ if (__name__ == '__main__'):
     process.start()
     server.start()
 
-    while(True)
+    while (True):
         continue
