@@ -20,11 +20,16 @@ import socket, time, sys, struct
 
 # TCP port for PRUserial485 bridge
 SERVER_PORT = 5000
+BBB_IP = "10.0.6.43"
 
 
 # Initial message
 sys.stdout.write("Ethernet bridge for PRUserial485\n")
 sys.stdout.flush()
+
+
+def time_string():
+    return(time.strftime("%d/%m/%Y, %H:%M:%S - ", time.localtime()))
 
 
 class ConstReturn:
@@ -52,7 +57,8 @@ class ConstSyncMode:
     ALL = (MIGINT, MIGEND, RMPINT, RMPEND, BRDCST)
 
 def message_length(message):
-    return(message[0] + struct.pack(">I", len(message)-1) + message[1:])
+    print(message,(len(message)-1),struct.pack(">I", (len(message)-1)))
+    return(struct.pack("B",message[0]) + struct.pack(">I", (len(message)-1)) + message[1:])
 
 def PRUserial485_open(mode = b'M', baudrate = 6):
     """Procedimento de inicialização da PRU."""
@@ -103,7 +109,7 @@ def PRUserial485_read():
     remote_socket.sendall(message_length(message))
     answer = remote_socket.recv(5000)
     if answer[0] == ANSWER_Ok:
-        data_size = struct.unpack(">H",answer[1:3])
+        data_size = struct.unpack(">H",answer[1:3])[0]
         data = []
         if data_size:
             data = [chr(i) for i in answer[3:]]
@@ -116,7 +122,7 @@ def PRUserial485_curve():
 
 def PRUserial485_set_curve_block(block = 0):
     """Selecao de bloco de curva a ser realizado."""
-    if block in AVAILABLE_CURVE_BLOCKS
+    if block in AVAILABLE_CURVE_BLOCKS:
         message = COMMAND_PRUserial485_set_curve_block + struct.pack("B", block)
         remote_socket.sendall(message_length(message))
         answer = remote_socket.recv(1)
@@ -148,7 +154,7 @@ def PRUserial485_read_curve_pointer():
     remote_socket.sendall(message_length(message))
     answer = remote_socket.recv(5)
     if answer[0] == ANSWER_Ok:
-        return(struck.unpack(">I", answer[1:]))
+        return(struck.unpack(">I", answer[1:])[0])
 
 
 
@@ -185,12 +191,12 @@ def PRUserial485_sync_status():
 
 
 def PRUserial485_read_pulse_count_sync():
-     """Leitura do contador de pulsos - Sync."""
+    """Leitura do contador de pulsos - Sync."""
     message = COMMAND_PRUserial485_read_pulse_count_sync
     remote_socket.sendall(message_length(message))
     answer = remote_socket.recv(5)
     if answer[0] == ANSWER_Ok:
-        return(struck.unpack(">I", answer[1:]))
+        return(struck.unpack(">I", answer[1:])[0])
 
 
 def PRUserial485_clear_pulse_count_sync():

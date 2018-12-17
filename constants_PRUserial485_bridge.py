@@ -1,29 +1,29 @@
 # General
-COMMAND_PRUserial485_open = b'0x00'
-COMMAND_PRUserial485_address = b'0x01'
-COMMAND_PRUserial485_close = b'0x02'
-COMMAND_PRUserial485_write = b'0x03'
-COMMAND_PRUserial485_read = b'0x04'
+COMMAND_PRUserial485_open = b'\x00'
+COMMAND_PRUserial485_address = b'\x01'
+COMMAND_PRUserial485_close = b'\x02'
+COMMAND_PRUserial485_write = b'\x03'
+COMMAND_PRUserial485_read = b'\x04'
 
 # Curves
-COMMAND_PRUserial485_curve = b'0x05'
-COMMAND_PRUserial485_set_curve_block = b'0x06'
-COMMAND_PRUserial485_read_curve_block = b'0x07'
-COMMAND_PRUserial485_set_curve_pointer = b'0x08'
-COMMAND_PRUserial485_read_curve_pointer = b'0x09'
+COMMAND_PRUserial485_curve = b'\x05'
+COMMAND_PRUserial485_set_curve_block = b'\x06'
+COMMAND_PRUserial485_read_curve_block = b'\x07'
+COMMAND_PRUserial485_set_curve_pointer = b'\x08'
+COMMAND_PRUserial485_read_curve_pointer = b'\x09'
 
 # Sync Operation
-COMMAND_PRUserial485_sync_start = b'0x0a'
-COMMAND_PRUserial485_sync_stop = b'0x0b'
-COMMAND_PRUserial485_sync_status = b'0x0c'
-COMMAND_PRUserial485_read_pulse_count_sync = b'0x0d'
-COMMAND_PRUserial485_clear_pulse_count_sync = b'0x0e'
+COMMAND_PRUserial485_sync_start = b'\x0a'
+COMMAND_PRUserial485_sync_stop = b'\x0b'
+COMMAND_PRUserial485_sync_status = b'\x0c'
+COMMAND_PRUserial485_read_pulse_count_sync = b'\x0d'
+COMMAND_PRUserial485_clear_pulse_count_sync = b'\x0e'
 
 # Terminator
-BRIDGE_Terminator = b'0x55'
+BRIDGE_Terminator = b'\x55'
 
 # Answers
-ANSWER_Ok = b'0xf'
+ANSWER_Ok = b'\x0f'
 
 
 

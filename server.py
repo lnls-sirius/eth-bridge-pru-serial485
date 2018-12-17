@@ -47,7 +47,7 @@ def processThread():
             PRUserial485_close()
 
         elif (item[0] == COMMAND_PRUserial485_write):
-            timeout = struct.unpack(">f", item[1][:4])
+            timeout = struct.unpack(">f", item[1][:4])[0]
             data = [chr(i) for i in item[1][4:]]
             res = PRUserial485_write(data, timeout)
             server_socket.sendall(ANSWER_Ok + struct.pack("B", res))
@@ -78,7 +78,7 @@ def processThread():
 
         elif (item[0] == COMMAND_PRUserial485_sync_start):
             PRUserial485_sync_start(sync_mode = ord(item[1][0]), \
-                                    delay = struct.unpack(">I", item[1][1:5]), \
+                                    delay = struct.unpack(">I", item[1][1:5])[0], \
                                     sync_address = ord(item[1][5]))
             server_socket.sendall(ANSWER_Ok)
 
@@ -127,7 +127,7 @@ def ServerThread():
                     data = connection.recv(5)
                     if(data):
                         command = data[0]
-                        data_size = struct.unpack(">I", data[1:])
+                        data_size = struct.unpack(">I", data[1:])[0]
 
                         # Get message
                         message = b''
