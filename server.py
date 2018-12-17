@@ -37,69 +37,70 @@ def processThread():
         # Verifica a operação a ser realizada
         if (item[0] == COMMAND_PRUserial485_open):
             res = PRUserial485_open(mode = item[1][0], baudrate = struct.unpack(">I", item[1][1:]))
-            server_socket.sendall(ANSWER_Ok + struct.pack("B", res))
+            connection.sendall(ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_address):
             res = PRUserial485_address()
-            server_socket.sendall(ANSWER_Ok + struct.pack("B", res))
+            connection.sendall(ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_close):
             PRUserial485_close()
+            connection.sendall(ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_write):
             timeout = struct.unpack(">f", item[1][:4])[0]
             data = [chr(i) for i in item[1][4:]]
             res = PRUserial485_write(data, timeout)
-            server_socket.sendall(ANSWER_Ok + struct.pack("B", res))
+            connection.sendall(ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_read):
             res = bytearray([ord(i) for i in PRUserial485_read()])
-            server_socket.sendall(ANSWER_Ok + res)
+            connection.sendall(ANSWER_Ok + res)
 
         elif (item[0] == COMMAND_PRUserial485_curve):
             # TO BE IMPLEMENTED
-            server_socket.sendall(ANSWER_Ok)
+            connection.sendall(ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_set_curve_block):
             PRUserial485_set_curve_block(ord(item[1][0]))
-            server_socket.sendall(ANSWER_Ok)
+            connection.sendall(ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_read_curve_block):
             res = PRUserial485_read_curve_block()
-            server_socket.sendall(ANSWER_Ok + struct.pack("B", res))
+            connection.sendall(ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_set_curve_pointer):
             PRUserial485_set_curve_pointer(ord(item[1][0]))
-            server_socket.sendall(ANSWER_Ok)
+            connection.sendall(ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_read_curve_pointer):
             res = PRUserial485_read_curve_pointer()
-            server_socket.sendall(ANSWER_Ok + struct.pack("B", res))
+            connection.sendall(ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_sync_start):
             PRUserial485_sync_start(sync_mode = ord(item[1][0]), \
                                     delay = struct.unpack(">I", item[1][1:5])[0], \
                                     sync_address = ord(item[1][5]))
-            server_socket.sendall(ANSWER_Ok)
+            connection.sendall(ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_sync_stop):
             PRUserial485_sync_stop()
-            server_socket.sendall(ANSWER_Ok)
+            connection.sendall(ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_sync_status):
             if PRUserial485_sync_status():
                 res = b'\x01'
             else:
                 res = b'\x00'
-            server_socket.sendall(ANSWER_Ok + res)
+            connection.sendall(ANSWER_Ok + res)
 
         elif (item[0] == COMMAND_PRUserial485_read_pulse_count_sync):
             res = PRUserial485_read_pulse_count_sync()
-            server_socket.sendall(ANSWER_Ok + struct.pack(">I", res))
+            connection.sendall(ANSWER_Ok + struct.pack(">I", res))
 
         elif (item[0] == COMMAND_PRUserial485_clear_pulse_count_sync):
             res = PRUserial485_clear_pulse_count_sync()
-            server_socket.sendall(ANSWER_Ok + struct.pack("B", res))
+            connection.sendall(ANSWER_Ok + struct.pack("B", res))
 
 def ServerThread():
 
