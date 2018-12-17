@@ -38,7 +38,7 @@ def processThread():
 
         # Verifica a operação a ser realizada
         if (item[0] == COMMAND_PRUserial485_open):
-            res = PRUserial485_open(baudrate = struct.unpack(">I", item[1][1:]),mode = item[1][0])
+            res = PRUserial485_open(baudrate = struct.unpack(">I", item[1][1:])[0],mode = item[1][0])
             connection.sendall(ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_address):
