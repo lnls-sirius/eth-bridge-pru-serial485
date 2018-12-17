@@ -20,7 +20,7 @@ import socket, time, sys, struct
 
 # TCP port for PRUserial485 bridge
 SERVER_PORT = 5000
-BBB_IP = ""
+
 
 # Initial message
 sys.stdout.write("Ethernet bridge for PRUserial485\n")
@@ -51,6 +51,8 @@ class ConstSyncMode:
     BRDCST = 0x5B  # Single Sequence - Single Broadcast Function command
     ALL = (MIGINT, MIGEND, RMPINT, RMPEND, BRDCST)
 
+def message_length(message):
+    return(message[0] + struct.pack(">I", len(message)-1) + message[1:])
 
 def PRUserial485_open(mode = b'M', baudrate = 6):
     """Procedimento de inicialização da PRU."""
@@ -61,7 +63,7 @@ def PRUserial485_open(mode = b'M', baudrate = 6):
 
     if (mode in AVAILABLE_MODES) and (baudrate in AVAILABLE_BAUDRATES):
         message = COMMAND_PRUserial485_open + mode + struct.pack(">I", baudrate)
-        remote_socket.sendall(message)
+        remote_socket.sendall(message_length(message))
         answer = remote_socket.recv(2)
         if answer[0] == ANSWER_Ok:
             return(ord(answer[1]))
@@ -70,7 +72,7 @@ def PRUserial485_open(mode = b'M', baudrate = 6):
 def PRUserial485_address():
     """Retorna endereco fisico da placa."""
     message = COMMAND_PRUserial485_address
-    remote_socket.sendall(message)
+    remote_socket.sendall(message_length(message))
     answer = remote_socket.recv(2)
     if answer[0] == ANSWER_Ok:
         return(ord(answer[1]))
@@ -80,7 +82,7 @@ def PRUserial485_address():
 def PRUserial485_close():
     """Encerra a PRU"""
     message = COMMAND_PRUserial485_close
-    remote_socket.sendall(message)
+    remote_socket.sendall(message_length(message))
     answer = remote_socket.recv(1)
     if answer[0] == ANSWER_Ok:
         remote_socket.close()
@@ -90,7 +92,7 @@ def PRUserial485_write(data = [], timeout = 0):
     """Envia dados através da interface serial."""
     message = COMMAND_PRUserial485_write + struct.pack(">f", timeout) + struct.pack(">H",len(data))
     message += bytearray([ord(i) for i in data])
-    remote_socket.sendall(message)
+    remote_socket.sendall(message_length(message))
     answer = remote_socket.recv(2)
     if answer[0] == ANSWER_Ok:
         return(ord(answer[1]))
@@ -98,7 +100,7 @@ def PRUserial485_write(data = [], timeout = 0):
 def PRUserial485_read():
     """Recebe dados através da interface serial."""
     message = COMMAND_PRUserial485_read
-    remote_socket.sendall(message)
+    remote_socket.sendall(message_length(message))
     answer = remote_socket.recv(5000)
     if answer[0] == ANSWER_Ok:
         data_size = struct.unpack(">H",answer[1:3])
@@ -116,7 +118,7 @@ def PRUserial485_set_curve_block(block = 0):
     """Selecao de bloco de curva a ser realizado."""
     if block in AVAILABLE_CURVE_BLOCKS
         message = COMMAND_PRUserial485_set_curve_block + struct.pack("B", block)
-        remote_socket.sendall(message)
+        remote_socket.sendall(message_length(message))
         answer = remote_socket.recv(1)
         if answer[0] == ANSWER_Ok:
             return
@@ -125,7 +127,7 @@ def PRUserial485_set_curve_block(block = 0):
 def PRUserial485_read_curve_block():
     """Leitura do bloco de curva que sera realizado."""
     message = COMMAND_PRUserial485_read_curve_block
-    remote_socket.sendall(message)
+    remote_socket.sendall(message_length(message))
     answer = remote_socket.recv(2)
     if answer[0] == ANSWER_Ok:
         return(ord(answer[1]))
@@ -135,7 +137,7 @@ def PRUserial485_set_curve_pointer(pointer = 0):
     """Ajusta ponteiro para proximo ponto a ser executado (curva)."""
     if pointer > 0:
         message = COMMAND_PRUserial485_set_curve_pointer + struct.pack(">I", pointer)
-        remote_socket.sendall(message)
+        remote_socket.sendall(message_length(message))
         answer = remote_socket.recv(1)
         if answer[0] == ANSWER_Ok:
             return
@@ -143,7 +145,7 @@ def PRUserial485_set_curve_pointer(pointer = 0):
 def PRUserial485_read_curve_pointer():
     """Leitura do ponteiro de curva (proximo ponto que sera executado)."""
     message = COMMAND_PRUserial485_read_curve_pointer
-    remote_socket.sendall(message)
+    remote_socket.sendall(message_length(message))
     answer = remote_socket.recv(5)
     if answer[0] == ANSWER_Ok:
         return(struck.unpack(">I", answer[1:]))
@@ -164,8 +166,8 @@ def PRUserial485_sync_start(sync_mode, delay, sync_address=0x00):
 def PRUserial485_sync_stop():
     """Finaliza a operação em modo síncrono."""
     message = COMMAND_PRUserial485_sync_stop
-    remote_socket.sendall(message)
-    answer = remote_socket.recv(2)
+    remote_socket.sendall(message_length(message))
+    answer = remote_socket.recv(1)
     if answer[0] == ANSWER_Ok:
         return
 
@@ -173,7 +175,7 @@ def PRUserial485_sync_stop():
 def PRUserial485_sync_status():
     """Verifica se sincronismo via PRU está aguardando pulso."""
     message = COMMAND_PRUserial485_sync_status
-    remote_socket.sendall(message)
+    remote_socket.sendall(message_length(message))
     answer = remote_socket.recv(2)
     if answer[0] == ANSWER_Ok:
         if answer[1] == b'\x00':
@@ -185,7 +187,7 @@ def PRUserial485_sync_status():
 def PRUserial485_read_pulse_count_sync():
      """Leitura do contador de pulsos - Sync."""
     message = COMMAND_PRUserial485_read_pulse_count_sync
-    remote_socket.sendall(message)
+    remote_socket.sendall(message_length(message))
     answer = remote_socket.recv(5)
     if answer[0] == ANSWER_Ok:
         return(struck.unpack(">I", answer[1:]))
@@ -194,7 +196,7 @@ def PRUserial485_read_pulse_count_sync():
 def PRUserial485_clear_pulse_count_sync():
     """Zera contador de pulsos - Sync."""
     message = COMMAND_PRUserial485_clear_pulse_count_sync
-    remote_socket.sendall(message)
+    remote_socket.sendall(message_length(message))
     answer = remote_socket.recv(2)
     if answer[0] == ANSWER_Ok:
         return(ord(answer[1]))
