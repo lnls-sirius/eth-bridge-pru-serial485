@@ -104,7 +104,20 @@ def processThread():
             res = PRUserial485_clear_pulse_count_sync()
             connection.sendall(ANSWER_Ok + struct.pack("B", res))
 
-def ServerThread():
+
+
+if (__name__ == '__main__'):
+
+    sys.stdout.write("----- TCP/IP SERVER FOR PRUSERIAL485 -----\n")
+    sys.stdout.write(time_string() + "Initialization.\n")
+    sys.stdout.flush()
+
+    queue = Queue()
+
+    # Create and start threads
+    process = threading.Thread(target = processThread)
+    process.setDaemon(True)
+    process.start()
 
     while (True):
         try:
@@ -156,28 +169,3 @@ def ServerThread():
             sys.stdout.flush()
 
             time.sleep(5)
-
-
-
-
-
-if (__name__ == '__main__'):
-
-    sys.stdout.write("----- TCP/IP SERVER FOR PRUSERIAL485 -----\n")
-    sys.stdout.write(time_string() + "Initialization.\n")
-    sys.stdout.flush()
-
-    queue = Queue()
-
-    # Create and start threads
-    process = threading.Thread(target = processThread)
-    server = threading.Thread(target = ServerThread)
-
-    process.setDaemon(True)
-    server.setDaemon(True)
-
-    process.start()
-    server.start()
-
-    while (True):
-        continue

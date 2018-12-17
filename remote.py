@@ -60,7 +60,7 @@ def message_length(message):
     print(message,(len(message)-1),struct.pack(">I", (len(message)-1)))
     return(struct.pack("B",message[0]) + struct.pack(">I", (len(message)-1)) + message[1:])
 
-def PRUserial485_open(mode = b'M', baudrate = 6):
+def PRUserial485_open(baudrate = 6, mode = b'M'):
     """Procedimento de inicialização da PRU."""
     remote_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     remote_socket.connect((BBB_IP, SERVER_PORT))
