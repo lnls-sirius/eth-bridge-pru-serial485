@@ -13,7 +13,7 @@ Versions:
 from constants_PRUserial485_bridge import *
 from functions_PRUserial485_bridge import *
 import socket, time, sys, struct
-from queue import PriorityQueue
+from queue import Queue
 from PRUserial485 import *
 
 # TCP port for PRUserial485 bridge
@@ -28,12 +28,11 @@ def time_string():
     return(time.strftime("%d/%m/%Y, %H:%M:%S - ", time.localtime()))
 
 
-def processThread(self):
+def processThread():
     # Laço que executa indefinidamente
     while (True):
         # Retira a próxima operação da fila
         item = queue.get(block = True)
-        item = item[1]
 
         # Verifica a operação a ser realizada
         if (item[0] == COMMAND_PRUserial485_open):
@@ -102,7 +101,7 @@ def processThread(self):
             res = PRUserial485_clear_pulse_count_sync()
             server_socket.sendall(ANSWER_Ok + struct.pack("B", res))
 
-def ServerThread(self):
+def ServerThread():
 
     while (True):
         try:
@@ -137,7 +136,8 @@ def ServerThread(self):
                             data_size -= 1
 
                         # Put operation in Queue
-                        queue.put((1, [command, message]))
+                        queue.put([command, message])
+                        print(command, message)
 
                     else:
                         sys.stdout.write(time_string() + "Client " + client_info[0] + ":" + str(client_info[1]) + " disconnected\n")
@@ -163,6 +163,8 @@ if (__name__ == '__main__'):
     sys.stdout.write("----- TCP/IP SERVER FOR PRUSERIAL485 -----\n")
     sys.stdout.write(time_string() + "Initialization.\n")
     sys.stdout.flush()
+
+    queue = Queue()
 
     # Create and start threads
     process = threading.Thread(target = processThread)
