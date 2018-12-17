@@ -12,7 +12,7 @@ Versions:
 
 from constants_PRUserial485_bridge import *
 from functions_PRUserial485_bridge import *
-import socket, time, sys, struct
+import socket, time, sys, struct, threading
 from queue import Queue
 from PRUserial485 import *
 
