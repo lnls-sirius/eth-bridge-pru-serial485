@@ -57,7 +57,7 @@ def processThread():
 
         elif (item[0] == COMMAND_PRUserial485_read):
             res = bytearray([ord(i) for i in PRUserial485_read()])
-            connection.sendall(ANSWER_Ok + res)
+            connection.sendall(ANSWER_Ok + struct.pack(">H", len(res)) + res)
 
         elif (item[0] == COMMAND_PRUserial485_curve):
             # TO BE IMPLEMENTED
@@ -69,7 +69,7 @@ def processThread():
 
         elif (item[0] == COMMAND_PRUserial485_read_curve_block):
             res = PRUserial485_read_curve_block()
-            connection.sendall(ANSWER_Ok + struct.pack("B", res))
+            connection.sendall(ANSWER_Ok +  struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_set_curve_pointer):
             PRUserial485_set_curve_pointer(ord(item[1][0]))
