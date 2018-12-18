@@ -163,7 +163,7 @@ def PRUserial485_read_curve_pointer():
     remote_socket.sendall(message_length(message))
     answer = remote_socket.recv(5)
     if answer[0] == ord(ANSWER_Ok):
-        return(struck.unpack(">I", answer[1:])[0])
+        return(struct.unpack(">I", answer[1:])[0])
 
 
 
