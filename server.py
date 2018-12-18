@@ -64,7 +64,7 @@ def processThread():
             connection.sendall(ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_set_curve_block):
-            PRUserial485_set_curve_block(ord(item[1][0]))
+            PRUserial485_set_curve_block(item[1][0])
             connection.sendall(ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_read_curve_block):
@@ -72,7 +72,7 @@ def processThread():
             connection.sendall(ANSWER_Ok +  struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_set_curve_pointer):
-            PRUserial485_set_curve_pointer(ord(item[1][0]))
+            PRUserial485_set_curve_pointer(item[1][0])
             connection.sendall(ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_read_curve_pointer):
@@ -80,9 +80,9 @@ def processThread():
             connection.sendall(ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_sync_start):
-            PRUserial485_sync_start(sync_mode = ord(item[1][0]), \
+            PRUserial485_sync_start(sync_mode = item[1][0], \
                                     delay = struct.unpack(">I", item[1][1:5])[0], \
-                                    sync_address = ord(item[1][5]))
+                                    sync_address = item[1][5])
             connection.sendall(ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_sync_stop):

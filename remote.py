@@ -104,7 +104,7 @@ def PRUserial485_close():
 
 def PRUserial485_write(data = [], timeout = 0):
     """Envia dados através da interface serial."""
-    message = COMMAND_PRUserial485_write + struct.pack(">f", timeout) + struct.pack(">H",len(data))
+    message = COMMAND_PRUserial485_write + struct.pack(">f", timeout)
     message += bytearray([ord(i) for i in data])
     remote_socket.sendall(message_length(message))
     answer = remote_socket.recv(2)
@@ -170,9 +170,9 @@ def PRUserial485_read_curve_pointer():
 def PRUserial485_sync_start(sync_mode, delay, sync_address=0x00):
     """Inicia operação em modo síncrono."""
     if (sync_mode in AVAILABLE_SYNC_MODES) and (delay >= 0) and (sync_address >= 0):
-        message = COMMAND_PRUserial485_sync_start + struct.pack("B", sync_mode) + \
-                    struct.pack(">I", delay) + struct.pack("B", sync_address)
-        remote_socket.sendall(message)
+        message = COMMAND_PRUserial485_sync_start + struct.pack("B", sync_mode) + struct.pack(">I", delay) + struct.pack("B", sync_address)
+        remote_socket.sendall(message_length(message))
+        print(message)
         answer = remote_socket.recv(1)
         if answer[0] == ord(ANSWER_Ok):
             return
