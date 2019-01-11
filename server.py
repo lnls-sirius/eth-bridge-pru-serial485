@@ -139,6 +139,14 @@ if (__name__ == '__main__'):
             sys.stdout.write(time_string() + "TCP/IP server on port 5000 started\n")
             sys.stdout.flush()
 
+            # Espera pela conexão de um cliente
+            sys.stdout.write(time_string() + "Waiting for connection\n")
+            sys.stdout.flush()
+            connection, client_info = server_socket.accept()
+            # Imprime uma mensagem na tela informando uma nova conexão
+            sys.stdout.write(time_string() + "Client " + client_info[0] + ":" + str(client_info[1]) + " connected\n")
+            sys.stdout.flush()
+
             while (True):
                     # Message header - Operation command (1 byte) + data size (4 bytes)
                     data = connection.recv(5)
