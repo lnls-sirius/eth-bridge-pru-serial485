@@ -29,15 +29,15 @@ def time_string():
 
 
 def processThread():
-    # Laço que executa indefinidamente
+    # Infinite loop
     while (True):
-        # Retira a próxima operação da fila
+
+        # Get next operation
         item = queue.get(block = True)
         item[0] = struct.pack("B",item[0])
         answer = b''
-#        print(item)
 
-        # Verifica a operação a ser realizada
+        # Verification and implementation
         if (item[0] == COMMAND_PRUserial485_open):
             res = PRUserial485_open(baudrate = struct.unpack(">I", item[1][1:])[0],mode = item[1][0])
             answer = (ANSWER_Ok + struct.pack("B", res))
@@ -132,18 +132,19 @@ if (__name__ == '__main__'):
 
     while (True):
         try:
-            # Cria o socket para o servidor TCP/IP
+            # Opens TCP/IP socket
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             server_socket.bind(("", 5000))
             server_socket.listen(1)
             sys.stdout.write(time_string() + "TCP/IP server on port 5000 started\n")
             sys.stdout.flush()
 
-            # Espera pela conexão de um cliente
+            # Wait for client connection
             sys.stdout.write(time_string() + "Waiting for connection\n")
             sys.stdout.flush()
             connection, client_info = server_socket.accept()
-            # Imprime uma mensagem na tela informando uma nova conexão
+
+            # New connection
             sys.stdout.write(time_string() + "Client " + client_info[0] + ":" + str(client_info[1]) + " connected\n")
             sys.stdout.flush()
 
@@ -156,15 +157,9 @@ if (__name__ == '__main__'):
 
                         # Get message
                         message = b''
-                        print(int(data_size / 4096), data_size % 4096)
                         for i in range(int(data_size / 4096)):
                             message += connection.recv(4096, socket.MSG_WAITALL)
-                            print("Loop", i)
-
                         message += connection.recv(int(data_size % 4096), socket.MSG_WAITALL)
-#                        while(data_size):
-#                        message += connection.recv(data_size)
-#                            data_size -= 1
 
                         # Put operation in Queue
                         queue.put([command, message])

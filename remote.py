@@ -68,6 +68,7 @@ def payload_length(payload):
     print(len(payload)-1)
     return(struct.pack("B",payload[0]) + struct.pack(">I", (len(payload)-1)) + payload[1:])
 
+
 def PRUserial485_open(baudrate = 6, mode = b'M'):
     """Procedimento de inicialização da PRU."""
     # Payload: MODE (1 byte) + BAUDRATE (4 bytes)
@@ -99,7 +100,6 @@ def PRUserial485_address():
         return(answer[1])
 
 
-
 def PRUserial485_close():
     """Encerra a PRU"""
     # Payload: none
@@ -121,6 +121,7 @@ def PRUserial485_write(data = [], timeout = 0):
     if answer[0] == ord(ANSWER_Ok):
         return(answer[1])
 
+
 def PRUserial485_read():
     """Recebe dados através da interface serial."""
     # Payload: none
@@ -136,6 +137,7 @@ def PRUserial485_read():
         if data_size == len(data):
             return data
 
+
 def PRUserial485_curve(curve1, curve2, curve3, curve4, block = 0):
     """Carregamento de curva."""
     # Payload: BLOCK (1 byte) +
@@ -149,7 +151,6 @@ def PRUserial485_curve(curve1, curve2, curve3, curve4, block = 0):
         answer = remote_socket.recv(2)
         if answer[0] == ord(ANSWER_Ok):
             return(answer[1])
-
 
 
 def PRUserial485_set_curve_block(block = 0):
@@ -183,6 +184,7 @@ def PRUserial485_set_curve_pointer(pointer = 0):
         if answer[0] == ord(ANSWER_Ok):
             return
 
+
 def PRUserial485_read_curve_pointer():
     """Leitura do ponteiro de curva (proximo ponto que sera executado)."""
     # Payload: none
@@ -191,7 +193,6 @@ def PRUserial485_read_curve_pointer():
     answer = remote_socket.recv(5)
     if answer[0] == ord(ANSWER_Ok):
         return(struct.unpack(">I", answer[1:])[0])
-
 
 
 def PRUserial485_sync_start(sync_mode, delay, sync_address=0x00):
