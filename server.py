@@ -34,76 +34,79 @@ def processThread():
         # Retira a próxima operação da fila
         item = queue.get(block = True)
         item[0] = struct.pack("B",item[0])
+        answer = b''
         print(item)
 
         # Verifica a operação a ser realizada
         if (item[0] == COMMAND_PRUserial485_open):
             res = PRUserial485_open(baudrate = struct.unpack(">I", item[1][1:])[0],mode = item[1][0])
-            connection.sendall(ANSWER_Ok + struct.pack("B", res))
+            answer = (ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_address):
             res = PRUserial485_address()
-            connection.sendall(ANSWER_Ok + struct.pack("B", res))
+            answer = (ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_close):
             PRUserial485_close()
-            connection.sendall(ANSWER_Ok)
+            answer = (ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_write):
             timeout = struct.unpack(">f", item[1][:4])[0]
             data = [chr(i) for i in item[1][4:]]
             res = PRUserial485_write(data, timeout)
-            connection.sendall(ANSWER_Ok + struct.pack("B", res))
+            answer = (ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_read):
             res = bytearray([ord(i) for i in PRUserial485_read()])
-            connection.sendall(ANSWER_Ok + struct.pack(">H", len(res)) + res)
+            answer = (ANSWER_Ok + struct.pack(">H", len(res)) + res)
 
         elif (item[0] == COMMAND_PRUserial485_curve):
             # TO BE IMPLEMENTED
-            connection.sendall(ANSWER_Ok)
+            answer = (ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_set_curve_block):
             PRUserial485_set_curve_block(item[1][0])
-            connection.sendall(ANSWER_Ok)
+            answer = (ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_read_curve_block):
             res = PRUserial485_read_curve_block()
-            connection.sendall(ANSWER_Ok +  struct.pack("B", res))
+            answer = (ANSWER_Ok +  struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_set_curve_pointer):
             PRUserial485_set_curve_pointer(struct.unpack(">I", item[1])[0])
-            connection.sendall(ANSWER_Ok)
+            answer = (ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_read_curve_pointer):
             res = PRUserial485_read_curve_pointer()
-            connection.sendall(ANSWER_Ok + struct.pack(">I", res))
+            answer = (ANSWER_Ok + struct.pack(">I", res))
 
         elif (item[0] == COMMAND_PRUserial485_sync_start):
             PRUserial485_sync_start(sync_mode = item[1][0], \
                                     delay = struct.unpack(">I", item[1][1:5])[0], \
                                     sync_address = item[1][5])
-            connection.sendall(ANSWER_Ok)
+            answer = (ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_sync_stop):
             PRUserial485_sync_stop()
-            connection.sendall(ANSWER_Ok)
+            answer = (ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_sync_status):
             if PRUserial485_sync_status():
                 res = b'\x01'
             else:
                 res = b'\x00'
-            connection.sendall(ANSWER_Ok + res)
+            answer = (ANSWER_Ok + res)
 
         elif (item[0] == COMMAND_PRUserial485_read_pulse_count_sync):
             res = PRUserial485_read_pulse_count_sync()
-            connection.sendall(ANSWER_Ok + struct.pack(">I", res))
+            answer = (ANSWER_Ok + struct.pack(">I", res))
 
         elif (item[0] == COMMAND_PRUserial485_clear_pulse_count_sync):
             res = PRUserial485_clear_pulse_count_sync()
-            connection.sendall(ANSWER_Ok + struct.pack("B", res))
+            answer = (ANSWER_Ok + struct.pack("B", res))
 
+        print(answer)
+        server_socket.sendall(answer)
 
 
 if (__name__ == '__main__'):
@@ -139,7 +142,7 @@ if (__name__ == '__main__'):
                 sys.stdout.flush()
 
                 while (True):
-                    # Message header - Operation command (1) + data size (4)
+                    # Message header - Operation command (1 byte) + data size (4 bytes)
                     data = connection.recv(5)
                     if(data):
                         command = data[0]
