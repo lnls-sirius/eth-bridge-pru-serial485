@@ -141,10 +141,10 @@ def PRUserial485_curve(curve1, curve2, curve3, curve4, block = 0):
     # Payload: BLOCK (1 byte) +
     if len(curve1) == len(curve2) == len(curve3) == len(curve4) and block in AVAILABLE_CURVE_BLOCKS:
         payload = COMMAND_PRUserial485_curve + struct.pack("B", block)
-        payload += payload.join((struct.pack(">f", point) for point in curve1))
-        payload += payload.join((struct.pack(">f", point) for point in curve2))
-        payload += payload.join((struct.pack(">f", point) for point in curve3))
-        payload += payload.join((struct.pack(">f", point) for point in curve4))
+        payload += b''.join((struct.pack(">f", point) for point in curve1)) + \
+                    b''.join((struct.pack(">f", point) for point in curve2)) + \
+                    b''.join((struct.pack(">f", point) for point in curve3)) + \
+                    b''.join((struct.pack(">f", point) for point in curve4))
         remote_socket.sendall(payload_length(payload))
         print(payload_length(payload), payload)
         answer = remote_socket.recv(2)
