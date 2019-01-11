@@ -158,10 +158,10 @@ if (__name__ == '__main__'):
                         message = b''
                         print(int(data_size / 4096), data_size % 4096)
                         for i in range(int(data_size / 4096)):
-                            message += connection.recv(4096)
+                            message += connection.recv(4096, socket.MSG_WAITALL)
                             print("Loop", i)
 
-                        message += connection.recv(int(data_size % 4096))
+                        message += connection.recv(int(data_size % 4096), socket.MSG_WAITALL)
 #                        while(data_size):
 #                        message += connection.recv(data_size)
 #                            data_size -= 1
