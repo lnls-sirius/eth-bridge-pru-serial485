@@ -68,7 +68,7 @@ def processThread():
             print(curve_size)
             curves = []
             for curve in range (4):
-                curves.append([struct.unpack(">f", item[1][4*i:4*i+4])[0] for i in range((curve*curve_size) + 1, (curve+1)*curve_size + 1)])
+                curves.append([struct.unpack(">f", item[1][4*i + 1:4*i+4 + 1])[0] for i in range((curve*curve_size), (curve+1)*curve_size)])
             print(curves)
             res = PRUserial485_curve(curves[0], curves[1], curves[2], curves[3], block)
 
