@@ -53,6 +53,7 @@ def processThread():
         elif (item[0] == COMMAND_PRUserial485_write):
             timeout = struct.unpack(">f", item[1][:4])[0]
             data = [chr(i) for i in item[1][4:]]
+            print(timeout, data)
             res = PRUserial485_write(data, timeout)
             answer = (ANSWER_Ok + struct.pack("B", res))
 
@@ -62,6 +63,9 @@ def processThread():
 
         elif (item[0] == COMMAND_PRUserial485_curve):
             # TO BE IMPLEMENTED
+            block = item[1][0]
+            curve_size = (len(item[1])-1) / 16
+            print(curve_size)
             answer = (ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_set_curve_block):
@@ -105,8 +109,8 @@ def processThread():
             res = PRUserial485_clear_pulse_count_sync()
             answer = (ANSWER_Ok + struct.pack("B", res))
 
-        print(answer)
-        server_socket.sendall(answer)
+
+        connection.sendall(answer)
 
 
 if (__name__ == '__main__'):
