@@ -65,7 +65,7 @@ class ConstSyncMode:
     ALL = (MIGINT, MIGEND, RMPINT, RMPEND, BRDCST)
 
 def payload_length(payload):
-    print(payload,(len(payload)-1),struct.pack(">I", (len(payload)-1)))
+    print(len(payload)-1)
     return(struct.pack("B",payload[0]) + struct.pack(">I", (len(payload)-1)) + payload[1:])
 
 def PRUserial485_open(baudrate = 6, mode = b'M'):
@@ -146,7 +146,6 @@ def PRUserial485_curve(curve1, curve2, curve3, curve4, block = 0):
                     b''.join((struct.pack(">f", point) for point in curve3)) + \
                     b''.join((struct.pack(">f", point) for point in curve4))
         remote_socket.sendall(payload_length(payload))
-        print(payload_length(payload))
         answer = remote_socket.recv(2)
         if answer[0] == ord(ANSWER_Ok):
             return(answer[1])

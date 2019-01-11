@@ -35,7 +35,7 @@ def processThread():
         item = queue.get(block = True)
         item[0] = struct.pack("B",item[0])
         answer = b''
-        #print(item)
+#        print(item)
 
         # Verifica a operação a ser realizada
         if (item[0] == COMMAND_PRUserial485_open):
@@ -61,7 +61,7 @@ def processThread():
             res = bytearray([ord(i) for i in PRUserial485_read()])
             answer = (ANSWER_Ok + struct.pack(">H", len(res)) + res)
 
-            # TO BE IMPLEMENTED
+        elif (item[0] == COMMAND_PRUserial485_curve):
             block = item[1][0]
             curve_size = int((len(item[1])-1) / 16)
             print(curve_size)
