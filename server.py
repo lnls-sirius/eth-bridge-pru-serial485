@@ -35,7 +35,7 @@ def processThread():
         item = queue.get(block = True)
         item[0] = struct.pack("B",item[0])
         answer = b''
-        print(item)
+        #print(item)
 
         # Verifica a operação a ser realizada
         if (item[0] == COMMAND_PRUserial485_open):
@@ -61,7 +61,6 @@ def processThread():
             res = bytearray([ord(i) for i in PRUserial485_read()])
             answer = (ANSWER_Ok + struct.pack(">H", len(res)) + res)
 
-        elif (item[0] == COMMAND_PRUserial485_curve):
             # TO BE IMPLEMENTED
             block = item[1][0]
             curve_size = int((len(item[1])-1) / 16)
@@ -69,7 +68,6 @@ def processThread():
             curves = []
             for curve in range (4):
                 curves.append([struct.unpack(">f", item[1][4*i + 1:4*i+4 + 1])[0] for i in range((curve*curve_size), (curve+1)*curve_size)])
-            print(curves)
             res = PRUserial485_curve(curves[0], curves[1], curves[2], curves[3], block)
 
             answer = (ANSWER_Ok + struct.pack("B", res))
@@ -166,7 +164,7 @@ if (__name__ == '__main__'):
 
                         # Put operation in Queue
                         queue.put([command, message])
-                        print(command, message)
+                        #print(command, message)
 
                     else:
                         sys.stdout.write(time_string() + "Client " + client_info[0] + ":" + str(client_info[1]) + " disconnected\n")
