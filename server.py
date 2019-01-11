@@ -64,7 +64,7 @@ def processThread():
         elif (item[0] == COMMAND_PRUserial485_curve):
             # TO BE IMPLEMENTED
             block = item[1][0]
-            curve_size = (len(item[1])-1) / 16
+            curve_size = int((len(item[1])-1) / 16)
             print(curve_size)
             curves = []
             for curve in range (4):
