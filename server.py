@@ -64,7 +64,7 @@ def processThread():
         elif (item[0] == COMMAND_PRUserial485_curve):
             block = item[1][0]
             curve_size = int((len(item[1])-1) / 16)
-            print(curve_size)
+            print("Curve size: ", curve_size)
             curves = []
             for curve in range (4):
                 curves.append([struct.unpack(">f", item[1][4*i + 1:4*i+4 + 1])[0] for i in range((curve*curve_size), (curve+1)*curve_size)])
@@ -140,16 +140,6 @@ if (__name__ == '__main__'):
             sys.stdout.flush()
 
             while (True):
-                # Espera pela conexão de um cliente
-                sys.stdout.write(time_string() + "Waiting for connection\n")
-                sys.stdout.flush()
-                connection, client_info = server_socket.accept()
-
-                # Imprime uma mensagem na tela informando uma nova conexão
-                sys.stdout.write(time_string() + "Client " + client_info[0] + ":" + str(client_info[1]) + " connected\n")
-                sys.stdout.flush()
-
-                while (True):
                     # Message header - Operation command (1 byte) + data size (4 bytes)
                     data = connection.recv(5)
                     if(data):
@@ -158,13 +148,20 @@ if (__name__ == '__main__'):
 
                         # Get message
                         message = b''
-                        while(data_size):
-                            message += connection.recv(1)
-                            data_size -= 1
+                        print(int(data_size / 4096), data_size % 4096)
+                        for i in range(int(data_size / 4096)):
+                            message += connection.recv(4096)
+                            print("Loop", i)
+
+                        message += connection.recv(int(data_size % 4096))
+#                        while(data_size):
+#                        message += connection.recv(data_size)
+#                            data_size -= 1
 
                         # Put operation in Queue
                         queue.put([command, message])
-                        #print(command, message)
+                        print("Command and payload length: ", command, len(message))
+                        print("END\n\n")
 
                     else:
                         sys.stdout.write(time_string() + "Client " + client_info[0] + ":" + str(client_info[1]) + " disconnected\n")
