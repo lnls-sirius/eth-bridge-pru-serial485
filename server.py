@@ -172,7 +172,7 @@ if (__name__ == '__main__'):
                         break
         except Exception:
 
-            server_socket.close()
+            connection.close()
 
             sys.stdout.write(time_string() + "Connection problem. Error message:\n\n")
             traceback.print_exc(file = sys.stdout)

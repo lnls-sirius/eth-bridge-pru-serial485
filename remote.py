@@ -237,7 +237,7 @@ def PRUserial485_read_pulse_count_sync():
     remote_socket.sendall(payload_length(payload))
     answer = remote_socket.recv(5)
     if answer[0] == ord(ANSWER_Ok):
-        return(struck.unpack(">I", answer[1:])[0])
+        return(struct.unpack(">I", answer[1:])[0])
 
 
 def PRUserial485_clear_pulse_count_sync():
