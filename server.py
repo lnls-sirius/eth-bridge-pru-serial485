@@ -139,37 +139,38 @@ if (__name__ == '__main__'):
             sys.stdout.write(time_string() + "TCP/IP server on port 5000 started\n")
             sys.stdout.flush()
 
-            # Wait for client connection
-            sys.stdout.write(time_string() + "Waiting for connection\n")
-            sys.stdout.flush()
-            connection, client_info = server_socket.accept()
+            while(True):
+                # Wait for client connection
+                sys.stdout.write(time_string() + "Waiting for connection\n")
+                sys.stdout.flush()
+                connection, client_info = server_socket.accept()
 
-            # New connection
-            sys.stdout.write(time_string() + "Client " + client_info[0] + ":" + str(client_info[1]) + " connected\n")
-            sys.stdout.flush()
+                # New connection
+                sys.stdout.write(time_string() + "Client " + client_info[0] + ":" + str(client_info[1]) + " connected\n")
+                sys.stdout.flush()
 
-            while (True):
-                    # Message header - Operation command (1 byte) + data size (4 bytes)
-                    data = connection.recv(5)
-                    if(data):
-                        command = data[0]
-                        data_size = struct.unpack(">I", data[1:])[0]
+                while (True):
+                        # Message header - Operation command (1 byte) + data size (4 bytes)
+                        data = connection.recv(5)
+                        if(data):
+                            command = data[0]
+                            data_size = struct.unpack(">I", data[1:])[0]
 
-                        # Get message
-                        message = b''
-                        for i in range(int(data_size / 4096)):
-                            message += connection.recv(4096, socket.MSG_WAITALL)
-                        message += connection.recv(int(data_size % 4096), socket.MSG_WAITALL)
+                            # Get message
+                            message = b''
+                            for i in range(int(data_size / 4096)):
+                                message += connection.recv(4096, socket.MSG_WAITALL)
+                            message += connection.recv(int(data_size % 4096), socket.MSG_WAITALL)
 
-                        # Put operation in Queue
-                        queue.put([command, message])
-                        print("Command and payload length: ", command, len(message))
-                        print("END\n\n")
+                            # Put operation in Queue
+                            queue.put([command, message])
+                            print("Command and payload length: ", command, len(message))
+                            print("END\n\n")
 
-                    else:
-                        sys.stdout.write(time_string() + "Client " + client_info[0] + ":" + str(client_info[1]) + " disconnected\n")
-                        sys.stdout.flush()
-                        break
+                        else:
+                            sys.stdout.write(time_string() + "Client " + client_info[0] + ":" + str(client_info[1]) + " disconnected\n")
+                            sys.stdout.flush()
+                            break
         except Exception:
 
             connection.close()
