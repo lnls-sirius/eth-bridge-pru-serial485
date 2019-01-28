@@ -3,7 +3,7 @@
 
 """
 Ethernet bridge for PRUserial485 library.
-SERVER SIDE - BEAGLEBONE BLACK
+SERVER SIDE - BEAGLEBONE BLACK SCRIPT
 Author: Patricia Nallin
 
 Versions:

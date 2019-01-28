@@ -3,7 +3,7 @@
 
 """
 Ethernet bridge for PRUserial485 library.
-REMOTE SIDE
+REMOTE SIDE - PRUserial485 via Ethernet bridge
 Author: Patricia Nallin
 
 Versions:
@@ -25,14 +25,27 @@ import socket, time, sys, struct
 
 # TCP port for PRUserial485 bridge
 SERVER_PORT = 5000
-BBB_IP = "10.0.6.55"
+BBB_IP = ''
+BBB_NAME = ''
+
+if len(sys.argv) > 1:
+    args = [arg for arg in sys.argv[1:]]
+    if '--hostname' in args:
+            hostname = socket.gethostname()
+            BBB_NAME = hostname.replace('--', ':')
+    else:
+        BBB_NAME = sys.argv[1]
+
+BBB_IP = find_BBB_IP(BBB_NAME)
+print(BBB_NAME, BBB_IP)
+
+if BBB_IP == None:
+    sys.stdout.write(time_string() + "Beaglebone IP not found. Please check BBB NAME\n")
+    sys.stdout.flush()
+    exit()
 
 
-# Initial message
-sys.stdout.write("Ethernet bridge for PRUserial485\n")
-sys.stdout.flush()
-
-
+# Creating socket object
 remote_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 remote_socket.close()
 
