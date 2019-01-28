@@ -60,23 +60,23 @@ LA-RaCtrl:CO-DCLinkCtrl     10.128.121.102
 ################################################################################
 IA-01RaCtrl:CO-DCLinkCtrl   10.128.101.104
 IA-02RaCtrl:CO-DCLinkCtrl   10.128.102.104
-IA-03RaCtrl:CO-DCLinkCtrl   10.128.103.104
+IA-03RaCtrl:CO-DCLinkCtrl
 IA-04RaCtrl:CO-DCLinkCtrl   10.128.104.104
 IA-05RaCtrl:CO-DCLinkCtrl   10.128.105.104
-IA-06RaCtrl:CO-DCLinkCtrl   10.128.106.104
+IA-06RaCtrl:CO-DCLinkCtrl
 IA-07RaCtrl:CO-DCLinkCtrl   10.128.107.104
 IA-08RaCtrl:CO-DCLinkCtrl   10.128.108.104
-IA-09RaCtrl:CO-DCLinkCtrl   10.128.109.104
+IA-09RaCtrl:CO-DCLinkCtrl
 IA-10RaCtrl:CO-DCLinkCtrl   10.128.110.104
 IA-11RaCtrl:CO-DCLinkCtrl   10.128.111.104
-IA-12RaCtrl:CO-DCLinkCtrl   10.128.112.104
+IA-12RaCtrl:CO-DCLinkCtrl
 IA-13RaCtrl:CO-DCLinkCtrl   10.128.113.104
 IA-14RaCtrl:CO-DCLinkCtrl   10.128.114.104
-IA-15RaCtrl:CO-DCLinkCtrl   10.128.115.104
+IA-15RaCtrl:CO-DCLinkCtrl
 IA-16RaCtrl:CO-DCLinkCtrl   10.128.116.104
 IA-17RaCtrl:CO-DCLinkCtrl   10.128.117.104
-IA-18RaCtrl:CO-DCLinkCtrl   10.128.118.104
-IA-19RaCtrl:CO-DCLinkCtrl   10.128.119.104
+IA-18RaCtrl:CO-DCLinkCtrl
+IA-19RaCtrl:CO-DCLinkCtrl   
 IA-20RaCtrl:CO-DCLinkCtrl   10.128.120.104
 
 
