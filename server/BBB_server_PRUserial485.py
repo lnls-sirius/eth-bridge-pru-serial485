@@ -44,7 +44,7 @@ def processThread():
         if (item[0] == COMMAND_PRUserial485_open):
             baudrate = struct.unpack(">I", item[1][1:])[0]
             mode = item[1][0]
-            sys.stdout.write(time_string()+"PRUserial485_open :: baudrate: {} - mode: {}\n".format(baudrate,mode))
+            sys.stdout.write(time_string()+"PRUserial485_open :: baudrate: {} - mode: {}\n".format(baudrate,chr(mode)))
             res = PRUserial485_open(baudrate,mode)
             answer = (ANSWER_Ok + struct.pack("B", res))
 
@@ -73,7 +73,7 @@ def processThread():
         elif (item[0] == COMMAND_PRUserial485_curve):
             block = item[1][0]
             curve_size = int((len(item[1])-1) / 16)
-            sys.stdout.write(time_string()+"PRUserial485_curve :: curve size: {} points\n".format(curve_size))
+            sys.stdout.write(time_string()+"PRUserial485_curve :: curve size: {} points - curve block: {}\n".format(curve_size, block))
             curves = []
             for curve in range (4):
                 curves.append([struct.unpack(">f", item[1][4*i + 1:4*i+4 + 1])[0] for i in range((curve*curve_size), (curve+1)*curve_size)])
@@ -105,7 +105,7 @@ def processThread():
             sync_mode = item[1][0]
             delay = struct.unpack(">I", item[1][1:5])[0]
             sync_address = item[1][5]
-            sys.stdout.write(time_string()+"PRUserial485_sync_start :: sync mode: {} - delay: {} us - sync address: {}\n".format(sync_mode,delay,sync_address))
+            sys.stdout.write(time_string()+"PRUserial485_sync_start :: sync mode: {} - delay: {} us - sync address: {}\n".format(hex(sync_mode),delay,sync_address))
             PRUserial485_sync_start(sync_mode, delay, sync_address)
             answer = (ANSWER_Ok)
 
