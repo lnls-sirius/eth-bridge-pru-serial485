@@ -3,7 +3,7 @@
 
 """
 Ethernet bridge for PRUserial485 library.
-REMOTE SIDE - PRUserial485 via Ethernet bridge
+CLIENT SIDE - PRUserial485 via Ethernet bridge
 Author: Patricia Nallin
 
 Versions:
@@ -42,10 +42,10 @@ if len(sys.argv) > 1:
 else:
     BBB_IP = input("Enter Beaglebone IP: ")
 
+sys.stdout.write(time_string() + BBB_NAME + "will be connected on IP" + BBB_IP + "\n")
+sys.stdout.flush()
 
-print(BBB_NAME, BBB_IP)
-
-if BBB_IP == None:
+if BBB_IP == '':
     sys.stdout.write(time_string() + "Beaglebone IP not found. Please check BBB NAME\n")
     sys.stdout.flush()
     exit()
@@ -115,11 +115,9 @@ def PRUserial485_open(baudrate = 6, mode = b'M'):
 def PRUserial485_address():
     """Retorna endereco fisico da placa."""
     # Payload: none
-    print(remote_socket)
     payload = COMMAND_PRUserial485_address
     remote_socket.sendall(payload_length(payload))
     answer = remote_socket.recv(2)
-    print(answer)
     if answer[0] == ord(ANSWER_Ok):
         return(answer[1])
 
@@ -151,7 +149,6 @@ def PRUserial485_read():
     payload = COMMAND_PRUserial485_read
     remote_socket.sendall(payload_length(payload))
     answer = remote_socket.recv(5000)
-    print(answer)
     if answer[0] == ord(ANSWER_Ok):
         data_size = struct.unpack(">H",answer[1:3])[0]
         data = []
@@ -224,7 +221,6 @@ def PRUserial485_sync_start(sync_mode, delay, sync_address=0x00):
     if (sync_mode in AVAILABLE_SYNC_MODES) and (delay >= 0) and (sync_address >= 0):
         payload = COMMAND_PRUserial485_sync_start + struct.pack("B", sync_mode) + struct.pack(">I", delay) + struct.pack("B", sync_address)
         remote_socket.sendall(payload_length(payload))
-        print(payload)
         answer = remote_socket.recv(1)
         if answer[0] == ord(ANSWER_Ok):
             return
