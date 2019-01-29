@@ -30,6 +30,12 @@ SERVER_PORT = 5000
 BBB_IP = ''
 BBB_NAME = ''
 
+
+def time_string():
+    return(time.strftime("%d/%m/%Y, %H:%M:%S - ", time.localtime()))
+
+    
+
 if len(sys.argv) > 1:
     args = [arg for arg in sys.argv[1:]]
     if '--hostname' in args:
@@ -54,9 +60,6 @@ if BBB_IP == '':
 # Creating socket object
 remote_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 remote_socket.close()
-
-def time_string():
-    return(time.strftime("%d/%m/%Y, %H:%M:%S - ", time.localtime()))
 
 
 class ConstReturn:
