@@ -93,6 +93,7 @@ def processThread():
         elif (item[0] == COMMAND_PRUserial485_set_curve_pointer):
             print("PRUserial485_set_curve_pointer")
             PRUserial485_set_curve_pointer(struct.unpack(">I", item[1])[0])
+            print("PRUserial485_set_curve_pointer")
             answer = (ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_read_curve_pointer):
@@ -132,6 +133,7 @@ def processThread():
 
 
         connection.sendall(answer)
+        print("PRUserial485_set_curve_pointer")
 
 
 if (__name__ == '__main__'):
