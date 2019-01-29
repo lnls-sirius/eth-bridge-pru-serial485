@@ -84,7 +84,6 @@ class ConstSyncMode:
     ALL = (MIGINT, MIGEND, RMPINT, RMPEND, BRDCST)
 
 def payload_length(payload):
-    print(len(payload)-1)
     return(struct.pack("B",payload[0]) + struct.pack(">I", (len(payload)-1)) + payload[1:])
 
 
