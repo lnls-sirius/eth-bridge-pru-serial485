@@ -103,7 +103,6 @@ def PRUserial485_open(baudrate = 6, mode = b'M'):
                 payload = COMMAND_PRUserial485_open + mode + struct.pack(">I", baudrate)
                 remote_socket.sendall(payload_length(payload))
                 answer = remote_socket.recv(2)
-                print(answer)
                 if answer[0] == ord(ANSWER_Ok):
                     return(answer[1])
             return
