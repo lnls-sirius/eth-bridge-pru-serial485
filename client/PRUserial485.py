@@ -19,9 +19,11 @@ Bytes:
 if (__name__ == "__main__"):
     exit()
 
+import socket, time, sys, struct, os.path
+sys.path.append(os.path.abspath(os.path.join(os.path.pardir,'common')))
 from constants_PRUserial485_bridge import *
 from functions_PRUserial485_bridge import *
-import socket, time, sys, struct
+
 
 # TCP port for PRUserial485 bridge
 SERVER_PORT = 5000
@@ -35,8 +37,12 @@ if len(sys.argv) > 1:
             BBB_NAME = hostname.replace('--', ':')
     else:
         BBB_NAME = sys.argv[1]
+    BBB_IP = find_BBB_IP(BBB_NAME)
 
-BBB_IP = find_BBB_IP(BBB_NAME)
+else:
+    BBB_IP = input("Enter Beaglebone IP: ")
+
+
 print(BBB_NAME, BBB_IP)
 
 if BBB_IP == None:
@@ -86,19 +92,26 @@ def PRUserial485_open(baudrate = 6, mode = b'M'):
     """Procedimento de inicialização da PRU."""
     # Payload: MODE (1 byte) + BAUDRATE (4 bytes)
     global remote_socket
-    if(remote_socket._closed):
-        remote_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        remote_socket.connect((BBB_IP, SERVER_PORT))
-        sys.stdout.write(time_string() + "TCP/IP client connected at " + BBB_IP +  " on port " + str(SERVER_PORT) + "\n")
-        sys.stdout.flush()
+    for i in range(3):
+        try:
+            if(remote_socket._closed):
+                remote_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                remote_socket.connect((BBB_IP, SERVER_PORT))
+                sys.stdout.write(time_string() + "TCP/IP client connected at " + BBB_IP +  " on port " + str(SERVER_PORT) + "\n")
+                sys.stdout.flush()
 
-    if (mode in AVAILABLE_MODES) and (baudrate in AVAILABLE_BAUDRATES):
-        payload = COMMAND_PRUserial485_open + mode + struct.pack(">I", baudrate)
-        remote_socket.sendall(payload_length(payload))
-        answer = remote_socket.recv(2)
-        print(answer)
-        if answer[0] == ord(ANSWER_Ok):
-            return(answer[1])
+            if (mode in AVAILABLE_MODES) and (baudrate in AVAILABLE_BAUDRATES):
+                payload = COMMAND_PRUserial485_open + mode + struct.pack(">I", baudrate)
+                remote_socket.sendall(payload_length(payload))
+                answer = remote_socket.recv(2)
+                print(answer)
+                if answer[0] == ord(ANSWER_Ok):
+                    return(answer[1])
+            return
+        except:
+            sys.stdout.write(time_string() + "Restoring socket...\n")
+            sys.stdout.flush()
+            remote_socket.close()
 
 
 def PRUserial485_address():
@@ -121,7 +134,6 @@ def PRUserial485_close():
     answer = remote_socket.recv(1)
     if answer[0] == ord(ANSWER_Ok):
         remote_socket.close()
-    print(remote_socket)
 
 
 def PRUserial485_write(data = [], timeout = 0):

@@ -4,9 +4,9 @@ if importlib.find_loader('siriuspy'):
     from siriuspy.search import PSSearch
 
 # FUNCAO PARA ENCONTRAR O IP A SE CONECTAR
-def find_BBB_IP(BBB_NAME):    
+def find_BBB_IP(BBB_NAME):
     beaglebone_IP = {}
-    with open("beaglebone-ip.txt", 'r') as fh:
+    with open("../beaglebone-ip.txt", 'r') as fh:
         for curline in fh:
             if curline.startswith("#") or len(curline) <= 1:
                 continue
