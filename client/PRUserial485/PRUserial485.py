@@ -104,8 +104,8 @@ def PRUserial485_open(baudrate = 6, mode = b'M'):
             if(remote_socket._closed):
                 remote_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 remote_socket.connect((BBB_IP, SERVER_PORT))
-                sys.stdout.write(time_string() + "TCP/IP client connected at " + BBB_IP +  " on port " + str(SERVER_PORT) + "\n")
-                sys.stdout.flush()
+#                sys.stdout.write(time_string() + "TCP/IP client connected at " + BBB_IP +  " on port " + str(SERVER_PORT) + "\n")
+#                sys.stdout.flush()
 
             if (mode in AVAILABLE_MODES) and (baudrate in AVAILABLE_BAUDRATES):
                 payload = COMMAND_PRUserial485_open + mode + struct.pack(">I", baudrate)
