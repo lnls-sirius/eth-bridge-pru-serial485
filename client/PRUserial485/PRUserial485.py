@@ -1,4 +1,4 @@
-#!/usr/bin/python-sirius
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 """
@@ -20,9 +20,9 @@ if (__name__ == "__main__"):
     exit()
 
 import socket, time, sys, struct, os.path
-sys.path.append(os.path.abspath(os.path.join(os.path.pardir,'common')))
-from constants_PRUserial485_bridge import *
-from functions_PRUserial485_bridge import *
+#sys.path.append(os.path.abspath(os.path.join(os.path.pardir,'common')))
+from PRUserial485.constants_PRUserial485_bridge import *
+from PRUserial485.functions_PRUserial485_bridge import *
 
 
 # TCP port for PRUserial485 bridge
@@ -34,21 +34,26 @@ BBB_NAME = ''
 def time_string():
     return(time.strftime("%d/%m/%Y, %H:%M:%S - ", time.localtime()))
 
-    
 
-if len(sys.argv) > 1:
-    args = [arg for arg in sys.argv[1:]]
-    if '--hostname' in args:
+if len(sys.argv) > 2:
+    IP_LIST_FILE = sys.argv[2]
+    if sys.argv[1] == '--hostname':
             hostname = socket.gethostname()
             BBB_NAME = hostname.replace('--', ':')
     else:
         BBB_NAME = sys.argv[1]
-    BBB_IP = find_BBB_IP(BBB_NAME)
+    BBB_IP = find_BBB_IP(BBB_NAME, IP_LIST_FILE)
+
+elif len(sys.argv) == 2:
+    sys.stdout.write(time_string() + "Please, check missing input argument: xxxxxxx.py HOSTNAME IP_LIST_FILE\n")
+    sys.stdout.flush()
+    exit()
 
 else:
     BBB_IP = input("Enter Beaglebone IP: ")
+    BBB_NAME = "UNKNOWN-BBB"
 
-sys.stdout.write(time_string() + BBB_NAME + "will be connected on IP" + BBB_IP + "\n")
+sys.stdout.write(time_string() + BBB_NAME + " will be connected on IP " + BBB_IP + "\n")
 sys.stdout.flush()
 
 if BBB_IP == '':
