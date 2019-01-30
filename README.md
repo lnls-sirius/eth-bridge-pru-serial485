@@ -15,7 +15,7 @@ Once all pins are configured correctly, run script:
 `python-sirius BBB_server_PRUserial485.py`or `python3 BBB_server_PRUserial485.py`
 
 
-### Client side - Beaglebone Black
+### Client side - another computer
 
 Client side contents are in folder **client**, and will be needed on host computer, which will be linked to a Beaglebone Black.
 
