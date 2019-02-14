@@ -24,7 +24,8 @@ import socket
 import sys
 import struct
 from PRUserial485 import constants_PRUserial485_bridge as _c
-from PRUserial485.functions_PRUserial485_bridge import _find_BBB_IP
+from PRUserial485.functions_PRUserial485_bridge import find_BBB_IP \
+    as _find_BBB_IP
 from siriuspy import util as _util
 
 
@@ -49,13 +50,13 @@ def set_beaglebone_ip(bbbname=None):
     BBB_NAME = bbbname.replace('--', ':')
     BBB_IP = _find_BBB_IP(BBB_NAME)
     if BBB_IP == '':
-        sys.stdout.write(_util.get_timestamp()() +
-                         "Beaglebone IP not found. Please check BBB NAME\n")
+        sys.stdout.write(_util.get_timestamp() +
+                         ": Beaglebone IP not found. Please check BBB NAME\n")
         sys.stdout.flush()
         sys.exit()
 
-    sys.stdout.write(_util.get_timestamp()() + "'" + BBB_NAME + "'" +
-                     " will be connected on IP " + BBB_IP + "\n")
+    sys.stdout.write(_util.get_timestamp() + ": '" + BBB_NAME + "'" +
+                     " will be connected on " + BBB_IP + "\n")
     sys.stdout.flush()
 
 
@@ -71,12 +72,12 @@ def set_beaglebone_ip(bbbname=None):
 #     BBB_NAME = bbbname.replace('--', ':')
 #     BBB_IP = _find_BBB_IP(BBB_NAME)
 #     if BBB_IP == '':
-#         sys.stdout.write(_util.get_timestamp()() +
-#                          "Beaglebone IP not found. Please check BBB NAME\n")
+#         sys.stdout.write(_util.get_timestamp() +
+#                          ": Beaglebone IP not found. Please check BBB NAME\n")
 #         sys.stdout.flush()
 #         sys.exit()
 #
-#     sys.stdout.write(_util.get_timestamp()() + "'" + BBB_NAME + "'" +
+#     sys.stdout.write(_util.get_timestamp() + ": '" + BBB_NAME + "'" +
 #                      " will be connected on IP " + BBB_IP + "\n")
 #     sys.stdout.flush()
 #
@@ -138,7 +139,7 @@ def PRUserial485_open(baudrate=6, mode=b'M'):
                     return(answer[1])
             return
         except:
-            sys.stdout.write(_util.get_timestamp()() + "Restoring socket...\n")
+            sys.stdout.write(_util.get_timestamp() + ": Restoring socket...\n")
             sys.stdout.flush()
             remote_socket.close()
 
