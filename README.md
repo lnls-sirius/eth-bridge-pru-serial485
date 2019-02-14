@@ -23,7 +23,7 @@ In order to have this module on your system, enter the project folder and instal
 
  - `cd client/`
  - `sudo python-sirius setup.py install`
-<br> 
+<br>
 
 #### Using the python module
 In your python code, you can just:
@@ -31,26 +31,13 @@ In your python code, you can just:
 import PRUserial485
 ```
 It is not needed to copy any library files to your project.
+Package **siriuspy** is needed to get the server IP on the beaglebone
 
-Once it will connect to a Beaglebone Black, its IP address will be necessary.
-There are two options to pass it to the module:
-
- - **Through script arguments**
- 
-This method uses a basing file which contains a list of BBB names followed by their IPs (such as ***beaglebone_ip.txt*** in this project).
-
-Ex: `python-sirius your-script.py BBB-NAME BBB-IP-FILE`
-
-Where:
-
--- *BBB-NAME*: BBB name to be connected
-
--- *BBB-IP-FILE*: file where *BBB-NAME* will be searched for to find its corresponding IP
-
- - **Manually through command-line**
-
- If no arguments are parsed while running a script, the module will ask user to enter the remote IP manually after importing PRUserial485.
-
+Before starting to use the library the name of the beaglebone to connect to
+needs to be defined invoking
+```python
+PRUserial485.set_beaglebone_ip(bbbname=None)
+```
 
 
 ---
