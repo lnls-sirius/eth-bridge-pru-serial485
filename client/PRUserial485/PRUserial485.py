@@ -101,7 +101,7 @@ class ConstReturn:
     ERR_INIT_PRU_BAUDR = 7  # init_start_PRU
     ERR_RECV_DATA_OLDMSG = 8  # recv_data_PRU
 
- 
+
 class ConstSyncMode:
     """Namespace for PRU sync modes."""
 
