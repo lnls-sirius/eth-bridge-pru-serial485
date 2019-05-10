@@ -31,7 +31,7 @@ from siriuspy import util as _util
 
 SERVER_PORT = 5000  # TCP port for PRUserial485 bridge
 BBB_NAME = ''
-BBB_IP = ''
+BBB_IP = '10.128.101.120'
 
 # Creating socket object
 remote_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -134,9 +134,12 @@ def PRUserial485_open(baudrate=6, mode=b'M'):
                 payload = _c.COMMAND_PRUserial485_open + \
                           mode + struct.pack(">I", baudrate)
                 remote_socket.sendall(payload_length(payload))
-                answer = remote_socket.recv(2)
-                if answer[0] == ord(_c.ANSWER_Ok):
-                    return(answer[1])
+                answer = remote_socket.recv(6)
+                command = struct.pack("B",answer[0])
+                data_size = struct.unpack(">I", answer[1:5])[0]
+                print(command, _c.COMMAND_PRUserial485_open)
+                if (command == _c.COMMAND_PRUserial485_open) and (data_size == 1):
+                    return(answer[5])
             return
         except:
             sys.stdout.write(_util.get_timestamp() + ": Restoring socket...\n")
@@ -149,9 +152,11 @@ def PRUserial485_address():
     # Payload: none
     payload = _c.COMMAND_PRUserial485_address
     remote_socket.sendall(payload_length(payload))
-    answer = remote_socket.recv(2)
-    if answer[0] == ord(_c.ANSWER_Ok):
-        return(answer[1])
+    answer = remote_socket.recv(6)
+    command = answer[0]
+    data_size = struct.unpack(">I", answer[1:])[0]
+    if answer[0] == ord(_c.COMMAND_PRUserial485_address) and data_size == 1:
+        return(answer[5])
 
 
 def PRUserial485_close():
@@ -159,8 +164,10 @@ def PRUserial485_close():
     # Payload: none
     payload = _c.COMMAND_PRUserial485_close
     remote_socket.sendall(payload_length(payload))
-    answer = remote_socket.recv(1)
-    if answer[0] == ord(_c.ANSWER_Ok):
+    answer = remote_socket.recv(5)
+    command = answer[0]
+    data_size = struct.unpack(">I", answer[1:])[0]
+    if answer[0] == ord(_c.COMMAND_PRUserial485_close) and data_size == 0:
         remote_socket.close()
 
 
@@ -170,9 +177,11 @@ def PRUserial485_write(data=[], timeout=0):
     payload = _c.COMMAND_PRUserial485_write + struct.pack(">f", timeout)
     payload += bytearray([ord(i) for i in data])
     remote_socket.sendall(payload_length(payload))
-    answer = remote_socket.recv(2)
-    if answer[0] == ord(_c.ANSWER_Ok):
-        return(answer[1])
+    answer = remote_socket.recv(6)
+    command = answer[0]
+    data_size = struct.unpack(">I", answer[1:])[0]
+    if answer[0] == ord(_c.COMMAND_PRUserial485_write) and data_size == 1:
+        return(answer[5])
 
 
 def PRUserial485_read():
@@ -180,14 +189,19 @@ def PRUserial485_read():
     # Payload: none
     payload = _c.COMMAND_PRUserial485_read
     remote_socket.sendall(payload_length(payload))
-    answer = remote_socket.recv(5000)
-    if answer[0] == ord(_c.ANSWER_Ok):
-        data_size = struct.unpack(">H", answer[1:3])[0]
-        data = []
-        if data_size:
-            data = [chr(i) for i in answer[3:]]
-        if data_size == len(data):
-            return data
+
+    answer = connection.recv(5)
+    command = answer[0]
+    data_size = struct.unpack(">I", answer[1:])[0]
+    # Get message
+    message = b''
+    if data_size:
+        for i in range(int(data_size / 4096)):
+            message += connection.recv(4096, socket.MSG_WAITALL)
+        message += connection.recv(int(data_size % 4096), socket.MSG_WAITALL)
+        data = [chr(i) for i in answer[3:]]
+
+    return message
 
 
 def PRUserial485_curve(curve1, curve2, curve3, curve4, block=0):
@@ -201,9 +215,11 @@ def PRUserial485_curve(curve1, curve2, curve3, curve4, block=0):
                    b''.join((struct.pack(">f", point) for point in curve3)) + \
                    b''.join((struct.pack(">f", point) for point in curve4))
         remote_socket.sendall(payload_length(payload))
-        answer = remote_socket.recv(2)
-        if answer[0] == ord(_c.ANSWER_Ok):
-            return(answer[1])
+        answer = remote_socket.recv(6)
+        command = answer[0]
+        data_size = struct.unpack(">I", answer[1:5])[0]
+        if answer[0] == ord(_c.COMMAND_PRUserial485_curve) and data_size == 1:
+            return(answer[5])
 
 
 def PRUserial485_set_curve_block(block=0):
@@ -213,8 +229,10 @@ def PRUserial485_set_curve_block(block=0):
         payload = _c.COMMAND_PRUserial485_set_curve_block + \
             struct.pack("B", block)
         remote_socket.sendall(payload_length(payload))
-        answer = remote_socket.recv(1)
-        if answer[0] == ord(_c.ANSWER_Ok):
+        answer = remote_socket.recv(5)
+        command = answer[0]
+        data_size = struct.unpack(">I", answer[1:])[0]
+        if answer[0] == ord(_c.COMMAND_PRUserial485_set_curve_block) and data_size == 0:
             return
 
 
@@ -223,9 +241,11 @@ def PRUserial485_read_curve_block():
     # Payload: none
     payload = _c.COMMAND_PRUserial485_read_curve_block
     remote_socket.sendall(payload_length(payload))
-    answer = remote_socket.recv(2)
-    if answer[0] == ord(_c.ANSWER_Ok):
-        return(answer[1])
+    answer = remote_socket.recv(6)
+    command = answer[0]
+    data_size = struct.unpack(">I", answer[1:5])[0]
+    if answer[0] == ord(_c.COMMAND_PRUserial485_read_curve_block) and data_size == 1:
+        return(answer[5])
 
 
 def PRUserial485_set_curve_pointer(pointer=0):
@@ -235,8 +255,10 @@ def PRUserial485_set_curve_pointer(pointer=0):
         payload = _c.COMMAND_PRUserial485_set_curve_pointer + \
             struct.pack(">I", pointer)
         remote_socket.sendall(payload_length(payload))
-        answer = remote_socket.recv(1)
-        if answer[0] == ord(_c.ANSWER_Ok):
+        answer = remote_socket.recv(5)
+        command = answer[0]
+        data_size = struct.unpack(">I", answer[1:])[0]
+        if answer[0] == ord(_c.COMMAND_PRUserial485_set_curve_pointer) and data_size == 0:
             return
 
 
@@ -245,9 +267,11 @@ def PRUserial485_read_curve_pointer():
     # Payload: none
     payload = _c.COMMAND_PRUserial485_read_curve_pointer
     remote_socket.sendall(payload_length(payload))
-    answer = remote_socket.recv(5)
-    if answer[0] == ord(_c.ANSWER_Ok):
-        return(struct.unpack(">I", answer[1:])[0])
+    answer = remote_socket.recv(9)
+    command = answer[0]
+    data_size = struct.unpack(">I", answer[1:5])[0]
+    if answer[0] == ord(_c.COMMAND_PRUserial485_read_curve_pointer) and data_size == 4:
+        return(struct.unpack(">I", answer[5:])[0])
 
 
 def PRUserial485_sync_start(sync_mode, delay, sync_address=0x00):
@@ -259,8 +283,10 @@ def PRUserial485_sync_start(sync_mode, delay, sync_address=0x00):
             struct.pack("B", sync_mode) + struct.pack(">I", delay) + \
             struct.pack("B", sync_address)
         remote_socket.sendall(payload_length(payload))
-        answer = remote_socket.recv(1)
-        if answer[0] == ord(_c.ANSWER_Ok):
+        answer = remote_socket.recv(5)
+        command = answer[0]
+        data_size = struct.unpack(">I", answer[1:])[0]
+        if answer[0] == ord(_c.COMMAND_PRUserial485_sync_start) and data_size == 0:
             return
 
 
@@ -269,8 +295,10 @@ def PRUserial485_sync_stop():
     # Payload: none
     payload = _c.COMMAND_PRUserial485_sync_stop
     remote_socket.sendall(payload_length(payload))
-    answer = remote_socket.recv(1)
-    if answer[0] == ord(_c.ANSWER_Ok):
+    answer = remote_socket.recv(5)
+    command = answer[0]
+    data_size = struct.unpack(">I", answer[1:])[0]
+    if answer[0] == ord(_c.COMMAND_PRUserial485_sync_stop) and data_size == 0:
         return
 
 
@@ -279,9 +307,11 @@ def PRUserial485_sync_status():
     # Payload: none
     payload = _c.COMMAND_PRUserial485_sync_status
     remote_socket.sendall(payload_length(payload))
-    answer = remote_socket.recv(2)
-    if answer[0] == ord(_c.ANSWER_Ok):
-        if answer[1] == 0:
+    answer = remote_socket.recv(6)
+    command = answer[0]
+    data_size = struct.unpack(">I", answer[1:5])[0]
+    if answer[0] == ord(_c.COMMAND_PRUserial485_sync_status) and data_size == 1:
+        if answer[5] == 0:
             return False
         else:
             return True
@@ -292,9 +322,11 @@ def PRUserial485_read_pulse_count_sync():
     # Payload: none
     payload = _c.COMMAND_PRUserial485_read_pulse_count_sync
     remote_socket.sendall(payload_length(payload))
-    answer = remote_socket.recv(5)
-    if answer[0] == ord(_c.ANSWER_Ok):
-        return(struct.unpack(">I", answer[1:])[0])
+    answer = remote_socket.recv(6)
+    command = answer[0]
+    data_size = struct.unpack(">I", answer[1:5])[0]
+    if answer[0] == ord(_c.COMMAND_PRUserial485_read_pulse_count_sync) and data_size == 4:
+        return(struct.unpack(">I", answer[5:])[0])
 
 
 def PRUserial485_clear_pulse_count_sync():
@@ -302,6 +334,8 @@ def PRUserial485_clear_pulse_count_sync():
     """Zera contador de pulsos - Sync."""
     payload = _c.COMMAND_PRUserial485_clear_pulse_count_sync
     remote_socket.sendall(payload_length(payload))
-    answer = remote_socket.recv(2)
-    if answer[0] == ord(_c.ANSWER_Ok):
-        return(answer[1])
+    answer = remote_socket.recv(6)
+    command = answer[0]
+    data_size = struct.unpack(">I", answer[1:])[0]
+    if answer[0] == ord(_c.COMMAND_PRUserial485_clear_pulse_count_sync) and data_size == 1:
+        return(answer[5])

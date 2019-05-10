@@ -30,6 +30,10 @@ sys.stdout.flush()
 def time_string():
     return(time.strftime("%d/%m/%Y, %H:%M:%S - ", time.localtime()))
 
+def payload_length(payload):
+    """."""
+    return(struct.pack("B", payload[0]) +
+           struct.pack(">I", (len(payload)-1)) + payload[1:])
 
 def processThread():
     # Infinite loop
@@ -133,7 +137,7 @@ def processThread():
             answer = (ANSWER_Ok + struct.pack("B", res))
 
 
-        connection.sendall(answer)
+        connection.sendall(payload_length(answer))
         sys.stdout.flush()
 
 if (__name__ == '__main__'):
