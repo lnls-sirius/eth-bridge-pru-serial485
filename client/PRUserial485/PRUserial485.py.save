@@ -134,12 +134,9 @@ def PRUserial485_open(baudrate=6, mode=b'M'):
                 payload = _c.COMMAND_PRUserial485_open + \
                           mode + struct.pack(">I", baudrate)
                 remote_socket.sendall(payload_length(payload))
-                print(payload_length(payload))
                 answer = remote_socket.recv(6)
-                print(answer)
                 command = struct.pack("B",answer[0])
                 data_size = struct.unpack(">I", answer[1:5])[0]
-                print(command, _c.COMMAND_PRUserial485_open)
                 if (command == _c.COMMAND_PRUserial485_open) and (data_size == 1):
                     return(answer[5])
             return
@@ -156,7 +153,7 @@ def PRUserial485_address():
     remote_socket.sendall(payload_length(payload))
     answer = remote_socket.recv(6)
     command = answer[0]
-    data_size = struct.unpack(">I", answer[1:5])[0]
+    data_size = struct.unpack(">I", answer[1:])[0]
     if answer[0] == ord(_c.COMMAND_PRUserial485_address) and data_size == 1:
         return(answer[5])
 
@@ -202,7 +199,7 @@ def PRUserial485_read():
             message += remote_socket.recv(4096, socket.MSG_WAITALL)
         message += remote_socket.recv(int(data_size % 4096), socket.MSG_WAITALL)
         data = [chr(i) for i in message]
-    print(data_size, data)
+    print(data_size)
     return data
 
 
