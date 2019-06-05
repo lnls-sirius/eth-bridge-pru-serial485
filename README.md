@@ -2,7 +2,7 @@
 ##### *Ethernet bridge for Beaglebone's PRUserial485 module*
 
 This python module was developed to run PRUserial485 commands remotely in a Beaglebone Black from any other workstation, based on a socket connection (on port 5000).
-
+Under development.
 
 
 ### Server side - Beaglebone Black
