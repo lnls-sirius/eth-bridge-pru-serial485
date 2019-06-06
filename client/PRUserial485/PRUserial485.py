@@ -33,6 +33,12 @@ SERVER_PORT = 5000  # TCP port for PRUserial485 bridge
 BBB_NAME = ''
 BBB_IP = '10.128.101.120'
 
+
+# Constants
+SOCKET_BUSY = True
+SOCKET_IDLE = False
+socket_status = SOCKET_IDLE
+
 # Creating socket object
 remote_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 remote_socket.close()
@@ -96,6 +102,13 @@ def payload_length(payload):
 
 def socket_communicate(sending_data):
     """."""
+
+    # Wait if there is another operation in use
+    while(socket_status == SOCKET_BUSY):
+        continue
+
+    # Get socket control
+    socket_status = SOCKET_BUSY
     remote_socket.sendall(payload_length(sending_data))
 
     # Receive prefix: command (1 byte) + data_size (4 bytes)
@@ -109,6 +122,9 @@ def socket_communicate(sending_data):
         for i in range(int(data_size / 4096)):
             payload += remote_socket.recv(4096, socket.MSG_WAITALL)
         payload += remote_socket.recv(int(data_size % 4096), socket.MSG_WAITALL)
+
+    # Free socket control
+    socket_status = SOCKET_IDLE
 
     return command, payload
 
