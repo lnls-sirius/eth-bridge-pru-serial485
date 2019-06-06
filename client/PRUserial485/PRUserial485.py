@@ -27,7 +27,7 @@ import time
 from PRUserial485 import constants_PRUserial485_bridge as _c
 from PRUserial485.functions_PRUserial485_bridge import find_BBB_IP \
     as _find_BBB_IP
-#from siriuspy import util as _util
+from siriuspy import util as _util
 
 
 SERVER_PORT = 5000  # TCP port for PRUserial485 bridge
@@ -157,8 +157,6 @@ def PRUserial485_open(baudrate=6, mode=b'M'):
                     return(ord(payload_recv))
             return
         except:
-#            sys.stdout.write(_util.get_timestamp() + ": Restoring socket...\n")
-#            sys.stdout.flush()
             remote_socket.close()
 
 

@@ -12,7 +12,14 @@ Versions:
 
 
 
-import socket, time, sys, struct, threading, traceback, os.path, datetime
+import socket
+import time
+import sys
+import struct
+import threading
+import traceback
+import os.path
+import datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.pardir,'common')))
 from constants_PRUserial485_bridge import *
 from functions_PRUserial485_bridge import *
