@@ -25,9 +25,25 @@ BRIDGE_Terminator = b'\x55'
 # Answers
 ANSWER_Ok = b'\x0f'
 
-
-
-
+# Naming
+PRUserial485_CommandName = {    COMMAND_PRUserial485_open : "PRUserial485_open",
+                                COMMAND_PRUserial485_address : "PRUserial485_address",
+                                COMMAND_PRUserial485_close : "PRUserial485_close",
+                                COMMAND_PRUserial485_write : "PRUserial485_write",
+                                COMMAND_PRUserial485_read : "PRUserial485_read",
+                                # Curves
+                                COMMAND_PRUserial485_curve : "PRUserial485_curve",
+                                COMMAND_PRUserial485_set_curve_block : "PRUserial485_set_curve_block",
+                                COMMAND_PRUserial485_read_curve_block : "PRUserial485_read_curve_block",
+                                COMMAND_PRUserial485_set_curve_pointer : "PRUserial485_set_curve_pointer",
+                                COMMAND_PRUserial485_read_curve_pointer : "PRUserial485_read_curve_pointer",
+                                # Sync Operation
+                                COMMAND_PRUserial485_sync_start : "PRUserial485_sync_start",
+                                COMMAND_PRUserial485_sync_stop : "PRUserial485_sync_stop",
+                                COMMAND_PRUserial485_sync_status : "PRUserial485_sync_status",
+                                COMMAND_PRUserial485_read_pulse_count_sync : "PRUserial485_read_pulse_count_sync",
+                                COMMAND_PRUserial485_clear_pulse_count_sync : "PRUserial485_clear_pulse_count_sync"
+}
 
 # Checking parameters
 AVAILABLE_BAUDRATES = [9600, 14400, 19200, 38400, 57600, 115200, 6,10, 12]
