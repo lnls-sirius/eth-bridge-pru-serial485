@@ -12,7 +12,7 @@ Versions:
 
 
 
-import socket, time, sys, struct, threading, traceback, os.path
+import socket, time, sys, struct, threading, traceback, os.path, datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.pardir,'common')))
 from constants_PRUserial485_bridge import *
 from functions_PRUserial485_bridge import *
@@ -28,7 +28,7 @@ sys.stdout.flush()
 
 
 def time_string():
-    return(time.strftime("%d/%m/%Y, %H:%M:%S - ", time.localtime()))
+    return(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f") + " - ")
 
 def payload_length(payload):
     """."""
@@ -124,7 +124,7 @@ def processThread():
 
         answer = item[0] + answer[1:]
         connection.sendall(payload_length(answer))
-        
+
         sys.stdout.write(time_string() + "\n")
         sys.stdout.write("Recebido: {} :: {}\n".format(PRUserial485_CommandName[item[0]], item))
         sys.stdout.write("Enviado: {}\n\n\n".format(payload_length(answer)))
