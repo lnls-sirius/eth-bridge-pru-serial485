@@ -32,7 +32,7 @@ from siriuspy import util as _util
 
 SERVER_PORT = 5000  # TCP port for PRUserial485 bridge
 BBB_NAME = ''
-BBB_IP = '10.0.6.36'
+BBB_IP = '10.128.101.120'
 
 
 # Constants
