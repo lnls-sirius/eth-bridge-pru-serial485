@@ -36,10 +36,10 @@ BBB_IP = '10.0.6.36'
 
 
 # Constants
-global status_skt
-status_BUSY = True
-status_IDLE = False
-status_skt = status_IDLE
+global socket_status
+BUSY = True
+IDLE = False
+socket_status = IDLE
 
 # Creating socket object
 remote_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -104,14 +104,14 @@ def payload_length(payload):
 
 def socket_communicate(sending_data):
     """."""
-    global status_skt
+    global socket_status
 
     # Wait if there is another operation in use
-    while(status_skt == status_BUSY):
+    while(socket_status == BUSY):
         continue
 
     # Get socket control
-    status_skt = status_BUSY
+    socket_status = BUSY
     remote_socket.sendall(payload_length(sending_data))
 
     # Receive prefix: command (1 byte) + data_size (4 bytes)
@@ -127,7 +127,7 @@ def socket_communicate(sending_data):
         payload += remote_socket.recv(int(data_size % 4096), socket.MSG_WAITALL)
 
     # Free socket control
-    status_skt = status_IDLE
+    socket_status = IDLE
 
     # Print
     print("Enviado: {}".format(payload_length(sending_data)))
