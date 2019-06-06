@@ -23,21 +23,23 @@ Bytes:
 import socket
 import sys
 import struct
+import time
 from PRUserial485 import constants_PRUserial485_bridge as _c
 from PRUserial485.functions_PRUserial485_bridge import find_BBB_IP \
     as _find_BBB_IP
-from siriuspy import util as _util
+#from siriuspy import util as _util
 
 
 SERVER_PORT = 5000  # TCP port for PRUserial485 bridge
 BBB_NAME = ''
-BBB_IP = '10.128.101.120'
+BBB_IP = '10.0.6.36'
 
 
 # Constants
-SOCKET_BUSY = True
-SOCKET_IDLE = False
-socket_status = SOCKET_IDLE
+global status_skt
+status_BUSY = True
+status_IDLE = False
+status_skt = status_IDLE
 
 # Creating socket object
 remote_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -102,13 +104,14 @@ def payload_length(payload):
 
 def socket_communicate(sending_data):
     """."""
+    global status_skt
 
     # Wait if there is another operation in use
-    while(socket_status == SOCKET_BUSY):
+    while(status_skt == status_BUSY):
         continue
 
     # Get socket control
-    socket_status = SOCKET_BUSY
+    status_skt = status_BUSY
     remote_socket.sendall(payload_length(sending_data))
 
     # Receive prefix: command (1 byte) + data_size (4 bytes)
@@ -124,8 +127,13 @@ def socket_communicate(sending_data):
         payload += remote_socket.recv(int(data_size % 4096), socket.MSG_WAITALL)
 
     # Free socket control
-    socket_status = SOCKET_IDLE
+    status_skt = status_IDLE
 
+    # Print
+    print("Enviado: {}".format(payload_length(sending_data)))
+    print("Recebido: {} {}\n\n".format(answer, payload))
+
+    # Return
     return command, payload
 
 
@@ -146,11 +154,11 @@ def PRUserial485_open(baudrate=6, mode=b'M'):
                 command, payload_recv = socket_communicate(payload)
                 command = struct.pack("B",command)
                 if (command == _c.COMMAND_PRUserial485_open) and (len(payload_recv) == 1):
-                    return(payload_recv)
+                    return(ord(payload_recv))
             return
         except:
-            sys.stdout.write(_util.get_timestamp() + ": Restoring socket...\n")
-            sys.stdout.flush()
+#            sys.stdout.write(_util.get_timestamp() + ": Restoring socket...\n")
+#            sys.stdout.flush()
             remote_socket.close()
 
 
@@ -160,7 +168,7 @@ def PRUserial485_address():
     payload = _c.COMMAND_PRUserial485_address
     command, payload_recv = socket_communicate(payload)
     if command == ord(_c.COMMAND_PRUserial485_address) and len(payload_recv) == 1:
-        return(payload_recv)
+        return(ord(payload_recv))
 
 
 def PRUserial485_close():
@@ -179,7 +187,7 @@ def PRUserial485_write(data=[], timeout=0):
     payload += bytearray([ord(i) for i in data])
     command, payload_recv = socket_communicate(payload)
     if command == ord(_c.COMMAND_PRUserial485_write) and len(payload_recv) == 1:
-        return(payload_recv)
+        return(ord(payload_recv))
 
 
 def PRUserial485_read():
@@ -204,7 +212,7 @@ def PRUserial485_curve(curve1, curve2, curve3, curve4, block=0):
                    b''.join((struct.pack(">f", point) for point in curve4))
         command, payload_recv = socket_communicate(payload)
         if command == ord(_c.COMMAND_PRUserial485_curve) and len(payload_recv) == 1:
-            return(payload_recv)
+            return(ord(payload_recv))
 
 
 def PRUserial485_set_curve_block(block=0):
@@ -224,7 +232,7 @@ def PRUserial485_read_curve_block():
     payload = _c.COMMAND_PRUserial485_read_curve_block
     command, payload_recv = socket_communicate(payload)
     if command == ord(_c.COMMAND_PRUserial485_read_curve_block) and len(payload_recv) == 1:
-        return(payload_recv)
+        return(ord(payload_recv))
 
 
 def PRUserial485_set_curve_pointer(pointer=0):
@@ -275,7 +283,7 @@ def PRUserial485_sync_status():
     payload = _c.COMMAND_PRUserial485_sync_status
     command, payload_recv = socket_communicate(payload)
     if command == ord(_c.COMMAND_PRUserial485_sync_status) and len(payload_recv) == 1:
-        if payload_recv == 0:
+        if ord(payload_recv) == 0:
             return False
         else:
             return True
@@ -296,4 +304,4 @@ def PRUserial485_clear_pulse_count_sync():
     payload = _c.COMMAND_PRUserial485_clear_pulse_count_sync
     command, payload_recv = socket_communicate(payload)
     if command == ord(_c.COMMAND_PRUserial485_clear_pulse_count_sync) and len(payload_recv) == 1:
-        return(payload_recv)
+        return(ord(payload_recv))

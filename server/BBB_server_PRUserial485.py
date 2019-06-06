@@ -125,9 +125,9 @@ def processThread():
         answer = item[0] + answer[1:]
         connection.sendall(payload_length(answer))
         
-        sys.stdout.write(time_string())
-        sys.stdout.write("Recebido: {} :: {}".format(PRUserial485_CommandName[item[0]], item))
-        sys.stdout.write("Enviado: {}\n\n".format(payload_length(answer)))
+        sys.stdout.write(time_string() + "\n")
+        sys.stdout.write("Recebido: {} :: {}\n".format(PRUserial485_CommandName[item[0]], item))
+        sys.stdout.write("Enviado: {}\n\n\n".format(payload_length(answer)))
         sys.stdout.flush()
 
 if (__name__ == '__main__'):
