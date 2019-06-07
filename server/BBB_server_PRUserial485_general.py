@@ -7,7 +7,7 @@ SERVER SIDE - BEAGLEBONE BLACK SCRIPT
 Author: Patricia Nallin
 
 Versions:
-05/12/2018 - xxxxxxxxx
+
 """
 
 
@@ -26,11 +26,12 @@ from functions_PRUserial485_bridge import *
 from queue import Queue
 from PRUserial485 import *
 
-# TCP port for PRUserial485 bridge
-SERVER_PORT = 5000
+# TCP port for PRUserial485 bridge - READ and WRITE functions
+SERVER_PORT_RW = 5000
+SERVER_PORT_GENERAL = 6000
 
 # Initial message
-sys.stdout.write("Ethernet bridge for PRUserial485\n")
+sys.stdout.write("Ethernet bridge for PRUserial485 - GENERAL commands\n")
 sys.stdout.flush()
 
 
@@ -65,16 +66,6 @@ def processThread():
         elif (item[0] == COMMAND_PRUserial485_close):
             PRUserial485_close()
             answer = (ANSWER_Ok)
-
-        elif (item[0] == COMMAND_PRUserial485_write):
-            timeout = struct.unpack(">f", item[1][:4])[0]
-            data = [chr(i) for i in item[1][4:]]
-            res = PRUserial485_write(data, timeout)
-            answer = (ANSWER_Ok + struct.pack("B", res))
-
-        elif (item[0] == COMMAND_PRUserial485_read):
-            res = bytearray([ord(i) for i in PRUserial485_read()])
-            answer = (ANSWER_Ok + res)
 
         elif (item[0] == COMMAND_PRUserial485_curve):
             block = item[1][0]
@@ -154,9 +145,9 @@ if (__name__ == '__main__'):
         try:
             # Opens TCP/IP socket
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            server_socket.bind(("", 5000))
+            server_socket.bind(("", SERVER_PORT_GENERAL))
             server_socket.listen(1)
-            sys.stdout.write(time_string() + "TCP/IP server on port 5000 started\n")
+            sys.stdout.write(time_string() + "TCP/IP server on port 6000 started\n")
             sys.stdout.flush()
 
             while(True):
