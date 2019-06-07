@@ -53,7 +53,7 @@ remote_socket_rw.close()
 
 def set_beaglebone_ip(bbbname=None):
     """."""
-    global remote_socket
+    global remote_socket_general, remote_socket_rw
     global BBB_NAME
     global BBB_IP
 
@@ -154,7 +154,7 @@ def socket_communicate_rw(sending_data):
     remote_socket_rw.sendall(payload_length(sending_data))
 
     # Receive prefix: command (1 byte) + data_size (4 bytes)
-    answer = remote_socket.recv(5)
+    answer = remote_socket_rw.recv(5)
     command = answer[0]
     data_size = struct.unpack(">I", answer[1:])[0]
 
@@ -178,7 +178,7 @@ def socket_communicate_rw(sending_data):
 
 def PRUserial485_open(baudrate=6, mode=b'M'):
     """Procedimento de inicialização da PRU."""
-    global remote_socket
+    global remote_socket_general, remote_socket_rw
     # Payload: MODE (1 byte) + BAUDRATE (4 bytes)
     for i in range(3):
         try:
