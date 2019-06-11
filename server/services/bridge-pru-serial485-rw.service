@@ -1,0 +1,17 @@
+[Unit]
+Description=BeagleBone Black Ethernet Bridge for PRUserial485 - Read/Write Service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Restart=always
+RestartSec=3
+Type=simple 
+WorkingDirectory=/root/eth-bridge-pru-serial485/server/
+ExecStartPre=sleep 5
+ExecStart=/usr/bin/python-sirius BBB_server_PRUserial485_read_write.py
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target
