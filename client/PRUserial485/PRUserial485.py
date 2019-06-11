@@ -8,7 +8,7 @@ CLIENT SIDE - PRUserial485 via Ethernet bridge
 Author: Patricia Nallin
 
 Release Date:
-05/jun/2019
+11/jun/2019
 
 Bytes:
 - 0: command
@@ -33,11 +33,11 @@ from siriuspy import util as _util
 SERVER_PORT_RW = 5000
 SERVER_PORT_GENERAL = 6000
 BBB_NAME = ''
-BBB_IP = '10.128.101.120'
+BBB_IP = '10.0.6.36'
 
 
 # Constants
-global socket_status
+global socket_status_general, socket_status_rw
 BUSY = True
 IDLE = False
 socket_status_general = IDLE
@@ -135,8 +135,8 @@ def socket_communicate_general(sending_data):
     socket_status_general = IDLE
 
     # Print
-    print("Enviado: {}".format(payload_length(sending_data)))
-    print("Recebido: {} {}\n\n".format(answer, payload))
+    #print("Enviado: {}".format(payload_length(sending_data)))
+    #print("Recebido: {} {}\n\n".format(answer, payload))
 
     # Return
     return command, payload
@@ -169,8 +169,8 @@ def socket_communicate_rw(sending_data):
     socket_status_rw = IDLE
 
     # Print
-    print("Enviado: {}".format(payload_length(sending_data)))
-    print("Recebido: {} {}\n\n".format(answer, payload))
+    #print("Enviado: {}".format(payload_length(sending_data)))
+    #print("Recebido: {} {}\n\n".format(answer, payload))
 
     # Return
     return command, payload
