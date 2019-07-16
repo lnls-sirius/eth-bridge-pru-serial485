@@ -141,6 +141,7 @@ def socket_communicate_general(sending_data):
     # Return
     return command, payload
 
+
 def socket_communicate_rw(sending_data):
     """."""
     global socket_status_rw
