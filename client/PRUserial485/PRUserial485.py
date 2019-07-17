@@ -8,7 +8,7 @@ CLIENT SIDE - PRUserial485 via Ethernet bridge
 Author: Patricia Nallin
 
 Release Date:
-11/jun/2019
+17/jul/2019
 
 Bytes:
 - 0: command
@@ -33,11 +33,14 @@ from siriuspy import util as _util
 SERVER_PORT_RW = 5000
 SERVER_PORT_GENERAL = 6000
 BBB_NAME = ''
-BBB_IP = '10.0.6.36'
+BBB_IP = '10.128.121.104'
 
+
+global DATA_ID
+DATA_ID=0
 
 # Constants
-global socket_status_general, socket_status_rw
+global socket_status_rw, socket_status_general
 BUSY = True
 IDLE = False
 socket_status_general = IDLE
@@ -107,6 +110,15 @@ def payload_length(payload):
            struct.pack(">I", (len(payload)-1)) + payload[1:])
 
 
+def payload_length_rw(payload):
+    """."""
+    global DATA_ID
+    DATA_ID += 1
+#    return(struct.pack(">I", DATA_ID) +
+    return(struct.pack("B", payload[0]) +
+           struct.pack(">I", (len(payload)-1)) + payload[1:])
+
+
 def socket_communicate_general(sending_data):
     """."""
     global socket_status_general
@@ -151,7 +163,7 @@ def socket_communicate_rw(sending_data):
 
     # Get socket control
     socket_status_rw = BUSY
-    remote_socket_rw.sendall(payload_length(sending_data))
+    remote_socket_rw.sendall(payload_length_rw(sending_data))
 
     # Receive prefix: command (1 byte) + data_size (4 bytes)
     answer = remote_socket_rw.recv(5)
@@ -169,7 +181,7 @@ def socket_communicate_rw(sending_data):
     socket_status_rw = IDLE
 
     # Print
-    #print("Enviado: {}".format(payload_length(sending_data)))
+    #print("Enviado: {}".format(payload_length_rw(sending_data)))
     #print("Recebido: {} {}\n\n".format(answer, payload))
 
     # Return
@@ -186,10 +198,12 @@ def PRUserial485_open(baudrate=6, mode=b'M'):
                 remote_socket_general = socket.socket(socket.AF_INET,
                                               socket.SOCK_STREAM)
                 remote_socket_general.connect((BBB_IP, SERVER_PORT_GENERAL))
+                remote_socket_general.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
             if remote_socket_rw._closed:
                 remote_socket_rw = socket.socket(socket.AF_INET,
                                               socket.SOCK_STREAM)
                 remote_socket_rw.connect((BBB_IP, SERVER_PORT_RW))
+                remote_socket_rw.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
             if (mode in _c.AVAILABLE_MODES) and \
                (baudrate in _c.AVAILABLE_BAUDRATES):
                 payload = _c.COMMAND_PRUserial485_open + \
