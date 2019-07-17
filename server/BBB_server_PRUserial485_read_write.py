@@ -90,6 +90,7 @@ if (__name__ == '__main__'):
             # Opens TCP/IP socket
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             server_socket.bind(("", SERVER_PORT_RW))
+            server_socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
             server_socket.listen(1)
             sys.stdout.write(time_string() + "TCP/IP server on port 5000 started\n")
             sys.stdout.flush()
