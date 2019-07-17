@@ -1,8 +1,10 @@
 ## eth-bridge-pru-serial485
 ##### *Ethernet bridge for Beaglebone's PRUserial485 module*
 
-This python module was developed to run PRUserial485 commands remotely in a Beaglebone Black from any other workstation, based on a socket connection (on port 5000).
-Under development.
+This python module was developed to run PRUserial485 commands remotely in a Beaglebone Black from any other workstation, based on TCP/IP socket connections.
+
+- **Port 5000**: for write/read commands, operations directly using serial RS485, which depends on the equipment response or serial line availability (blocking functions).
+- **Port 6000**: for general commands, which only depends on BBB memory access and answer is always immediate.
 
 
 ### Server side - Beaglebone Black
@@ -10,9 +12,11 @@ Server side contents are available in folder **server**, which will be necessary
 
 Simple configuration: PRUserial485 library for BeagleboneBlack is needed (find it at [pru-serial485](http://github.com/lnls-sirius/pru-serial485) repo).
 
-Once all pins are configured correctly, run script:
+For building it, enter the folder `server` and run `make install`. This will copy service files into BBB system.
 
-`python-sirius BBB_server_PRUserial485.py`or `python3 BBB_server_PRUserial485.py`
+Server services **are not launched automatically** every BBB booting. **Once all BBB pins are configured correctly**, start them:
+
+`systemctl start bridge-pru-serial485-general bridge-pru-serial485-rw`
 
 
 ### Client side - another computer
@@ -41,7 +45,10 @@ PRUserial485.set_beaglebone_ip(bbbname=None)
 
 
 ---
+---
+---
 #### Available Methods
+
 Identical to [pru-serial485](http://github.com/lnls-sirius/pru-serial485) methods.
 
 _**General Purpose**_

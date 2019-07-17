@@ -35,6 +35,7 @@ SERVER_PORT_GENERAL = 6000
 BBB_NAME = ''
 BBB_IP = '10.128.121.104'
 
+
 global DATA_ID
 DATA_ID=0
 
@@ -182,6 +183,7 @@ def socket_communicate_rw(sending_data):
     # Print
     #print("Enviado: {}".format(payload_length_rw(sending_data)))
     #print("Recebido: {} {}\n\n".format(answer, payload))
+
     # Return
     return command, payload
 
