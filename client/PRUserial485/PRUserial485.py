@@ -27,13 +27,13 @@ import time
 from PRUserial485 import constants_PRUserial485_bridge as _c
 from PRUserial485.functions_PRUserial485_bridge import find_BBB_IP \
     as _find_BBB_IP
-from siriuspy import util as _util
+#from siriuspy import util as _util
 
 
 SERVER_PORT_RW = 5000
 SERVER_PORT_GENERAL = 6000
 BBB_NAME = ''
-BBB_IP = '10.128.121.104'
+BBB_IP = '10.0.6.53'
 
 
 global DATA_ID

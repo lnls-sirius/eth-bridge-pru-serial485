@@ -10,8 +10,6 @@ Release:
 17/jul/2019
 """
 
-
-
 import socket
 import time
 import sys
@@ -43,13 +41,12 @@ def payload_length(payload):
     return(struct.pack("B", payload[0]) +
            struct.pack(">I", (len(payload)-1)) + payload[1:])
 
-def processThread():
-    # Infinite loop
+def processThread_general():
     while (True):
-
         # Get next operation
-        item = queue.get(block = True)
+        item = queue_general.get(block = True)
         item[0] = struct.pack("B",item[0])
+        client = item[2]
         answer = b''
 
         # Verification and implementation
@@ -121,12 +118,87 @@ def processThread():
 
 
         answer = item[0] + answer[1:]
-        connection.sendall(payload_length(answer))
+        client.sendall(payload_length(answer))
 
-#        sys.stdout.write(time_string() + "\n")
-#        sys.stdout.write("Recebido: {} :: {}\n".format(PRUserial485_CommandName[item[0]], item))
-#        sys.stdout.write("Enviado: {}\n\n\n".format(payload_length(answer)))
-#        sys.stdout.flush()
+
+def processThread_rw():
+    while (True):
+        # Get next operation
+        item = queue_rw.get(block = True)
+        item[0] = struct.pack("B",item[0])
+        client = item[2]
+        answer = b''
+
+        # Verification and implementation
+        if (item[0] == COMMAND_PRUserial485_write):
+            timeout = struct.unpack(">f", item[1][:4])[0]
+            data = [chr(i) for i in item[1][4:]]
+            res = PRUserial485_write(data, timeout)
+            answer = (ANSWER_Ok + struct.pack("B", res))
+
+        elif (item[0] == COMMAND_PRUserial485_read):
+            res = bytearray([ord(i) for i in PRUserial485_read()])
+            answer = (ANSWER_Ok + res)
+
+        answer = item[0] + answer[1:]
+        client.sendall(payload_length(answer))
+
+
+def connectionThread(conn_port):
+    while (True):
+        try:
+            # Opens TCP/IP socket
+            server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            server_socket.bind(("", conn_port))
+            server_socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
+            server_socket.listen(1)
+            sys.stdout.write(time_string() + "TCP/IP server on port {} started\n".format(conn_port))
+            sys.stdout.flush()
+
+            while(True):
+                # Wait for client connection
+                sys.stdout.write(time_string() + "Port {} waiting for connection\n".format(conn_port))
+                sys.stdout.flush()
+                connection, client_info = server_socket.accept()
+
+                # New connection
+                sys.stdout.write(time_string() + "Port {}: client {}:{} connected\n".format(conn_port, client_info[0], client_info[1]))
+                sys.stdout.flush()
+
+                while (True):
+                    # Message header - Operation command (1 byte) + data size (4 bytes)
+                    data = connection.recv(5)
+                    if(data):
+                        command = data[0]
+                        data_size = struct.unpack(">I", data[1:])[0]
+
+                        # Get message
+                        message = b''
+                        for i in range(int(data_size / 4096)):
+                            message += connection.recv(4096, socket.MSG_WAITALL)
+                        message += connection.recv(int(data_size % 4096), socket.MSG_WAITALL)
+
+                        # Put operation in Queue
+                        if command == ord(COMMAND_PRUserial485_write) or command == ord(COMMAND_PRUserial485_read):
+                            queue_rw.put([command, message, connection])
+                        else:
+                            queue_general.put([command, message, connection])
+
+                    else:
+                        sys.stdout.write(time_string() + "Client {}:{} disconnected on port {}.\n".format(client_info[0], client_info[1], conn_port))
+                        sys.stdout.flush()
+                        break
+
+        except Exception:
+            server_socket.close()
+            sys.stdout.write(time_string() + "Connection problem on port {}. Error message:\n\n".format(conn_port))
+            traceback.print_exc(file = sys.stdout)
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+            time.sleep(5)
+
+
+
 
 if (__name__ == '__main__'):
 
@@ -134,60 +206,26 @@ if (__name__ == '__main__'):
     sys.stdout.write(time_string() + "Initialization.\n")
     sys.stdout.flush()
 
-    queue = Queue()
+    queue_general = Queue()
+    queue_rw = Queue()
 
-    # Create and start threads
-    process = threading.Thread(target = processThread)
-    process.setDaemon(True)
-    process.start()
+    # Create and start process threads
+    process_general = threading.Thread(target = processThread_general)
+    process_general.setDaemon(True)
+    process_general.start()
+
+    process_rw = threading.Thread(target = processThread_rw)
+    process_rw.setDaemon(True)
+    process_rw.start()
+
+    # Create and start connection threads
+    connection_general = threading.Thread(target = connectionThread, args = [SERVER_PORT_GENERAL])
+    connection_general.setDaemon(True)
+    connection_general.start()
+
+    connection_rw = threading.Thread(target = connectionThread, args = [SERVER_PORT_RW])
+    connection_rw.setDaemon(True)
+    connection_rw.start()
 
     while (True):
-        try:
-            # Opens TCP/IP socket
-            server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            server_socket.bind(("", SERVER_PORT_GENERAL))
-            server_socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
-            server_socket.listen(1)
-            sys.stdout.write(time_string() + "TCP/IP server on port 6000 started\n")
-            sys.stdout.flush()
-
-            while(True):
-                # Wait for client connection
-                sys.stdout.write(time_string() + "Waiting for connection\n")
-                sys.stdout.flush()
-                connection, client_info = server_socket.accept()
-
-                # New connection
-                sys.stdout.write(time_string() + "Client " + client_info[0] + ":" + str(client_info[1]) + " connected\n")
-                sys.stdout.flush()
-
-                while (True):
-                        # Message header - Operation command (1 byte) + data size (4 bytes)
-                        data = connection.recv(5)
-                        if(data):
-                            command = data[0]
-                            data_size = struct.unpack(">I", data[1:])[0]
-
-                            # Get message
-                            message = b''
-                            for i in range(int(data_size / 4096)):
-                                message += connection.recv(4096, socket.MSG_WAITALL)
-                            message += connection.recv(int(data_size % 4096), socket.MSG_WAITALL)
-
-                            # Put operation in Queue
-                            queue.put([command, message])
-
-                        else:
-                            sys.stdout.write(time_string() + "Client " + client_info[0] + ":" + str(client_info[1]) + " disconnected\n")
-                            sys.stdout.flush()
-                            break
-        except Exception:
-
-            server_socket.close()
-
-            sys.stdout.write(time_string() + "Connection problem. Error message:\n\n")
-            traceback.print_exc(file = sys.stdout)
-            sys.stdout.write("\n")
-            sys.stdout.flush()
-
-            time.sleep(5)
+        continue
