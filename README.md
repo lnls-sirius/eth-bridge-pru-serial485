@@ -16,7 +16,7 @@ For building it, enter the folder `server` and run `make install`. This will cop
 
 Server services **are not launched automatically** every BBB booting. **Once all BBB pins are configured correctly**, start them:
 
-`systemctl start bridge-pru-serial485-general bridge-pru-serial485-rw`
+`systemctl start eth-bridge-pru-serial485.service
 
 
 ### Client side - another computer
