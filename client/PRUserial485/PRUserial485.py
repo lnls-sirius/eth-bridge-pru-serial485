@@ -27,17 +27,15 @@ import time
 from PRUserial485 import constants_PRUserial485_bridge as _c
 from PRUserial485.functions_PRUserial485_bridge import find_BBB_IP \
     as _find_BBB_IP
-#from siriuspy import util as _util
+from siriuspy import util as _util
 
 
 SERVER_PORT_RW = 5000
 SERVER_PORT_GENERAL = 6000
 BBB_NAME = ''
-BBB_IP = '10.0.6.53'
+BBB_IP = '10.0.6.44'
 
 
-global DATA_ID
-DATA_ID=0
 
 # Constants
 global socket_status_rw, socket_status_general
@@ -112,9 +110,6 @@ def payload_length(payload):
 
 def payload_length_rw(payload):
     """."""
-    global DATA_ID
-    DATA_ID += 1
-#    return(struct.pack(">I", DATA_ID) +
     return(struct.pack("B", payload[0]) +
            struct.pack(">I", (len(payload)-1)) + payload[1:])
 
