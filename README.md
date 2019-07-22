@@ -12,9 +12,9 @@ Server side contents are available in folder **server**, which will be necessary
 
 Simple configuration: PRUserial485 library for BeagleboneBlack is needed (find it at [pru-serial485](http://github.com/lnls-sirius/pru-serial485) repo).
 
-For building it, enter the folder `server` and run `make install`. This will copy service files into BBB system.
+For building it, enter the folder `server` and run `make install`. This will copy service file into BBB system.
 
-Server services **are not launched automatically** every BBB booting. **Once all BBB pins are configured correctly**, start them:
+Server service **is not launched automatically** every BBB booting. **Once all BBB pins are configured correctly**, start it:
 
 `systemctl start eth-bridge-pru-serial485.service`
 
