@@ -206,10 +206,12 @@ def connectionThread(conn_port):
 
 def daemon_server(daemon_port):
     global daemon_socket
+    client_info = [""]
     while (True):
         try:
             # Opens a Daemon TCP/IP socket - To signalize whether server is available
             daemon_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            daemon_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             daemon_socket.bind(("", DAEMON_PORT))
             daemon_socket.listen(1)
             sys.stdout.write(time_string() + "TCP/IP daemon server on port {} started\n".format(DAEMON_PORT))
@@ -221,13 +223,15 @@ def daemon_server(daemon_port):
                     time.sleep(1)
 
                 # Wait for client connection
-                sys.stdout.write(time_string() + "Daemon port {} waiting for connection\n".format(DAEMON_PORT))
-                sys.stdout.flush()
+                if client_info[0] != "127.0.0.1":
+                    sys.stdout.write(time_string() + "Daemon port {} waiting for connection\n".format(DAEMON_PORT))
+                    sys.stdout.flush()
                 connection, client_info = daemon_socket.accept()
 
                 # New connection
-                sys.stdout.write(time_string() + "Daemon port {}: client {}:{} connected\n".format(DAEMON_PORT, client_info[0], client_info[1]))
-                sys.stdout.flush()
+                if client_info[0] != "127.0.0.1":
+                    sys.stdout.write(time_string() + "Daemon port {}: client {}:{} connected\n".format(DAEMON_PORT, client_info[0], client_info[1]))
+                    sys.stdout.flush()
 
 
         except Exception:
@@ -236,7 +240,8 @@ def daemon_server(daemon_port):
             traceback.print_exc(file = sys.stdout)
             sys.stdout.write("\n")
             sys.stdout.flush()
-            time.sleep(5)
+            time.sleep(1)
+
 
 
 
@@ -277,10 +282,10 @@ if (__name__ == '__main__'):
     time.sleep(1)
 
     while (True):
-        while connection_daemon[SERVER_PORT_GENERAL] == "Available" or connection_daemon[SERVER_PORT_RW] == "Available":
-            time.sleep(1)
+        while connection_daemon[SERVER_PORT_GENERAL] == "Available" and connection_daemon[SERVER_PORT_RW] == "Available":
+            time.sleep(5)
 
+        # If daemon_socket is  blocking on accept() after ports unavailable anymore, force a connection to close it.
         if not daemon_socket._closed:
-            daemon_socket.close()
-
-        time.sleep(1)
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect(('127.0.0.1', DAEMON_PORT))
