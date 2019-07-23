@@ -228,4 +228,4 @@ if (__name__ == '__main__'):
     connection_rw.start()
 
     while (True):
-        continue
+        time.sleep(10)
