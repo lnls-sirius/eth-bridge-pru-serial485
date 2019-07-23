@@ -27,6 +27,8 @@ from PRUserial485 import *
 # TCP port for PRUserial485 bridge - READ and WRITE functions
 SERVER_PORT_RW = 5000
 SERVER_PORT_GENERAL = 6000
+DAEMON_PORT = 5500
+connection_daemon = {SERVER_PORT_RW:"", SERVER_PORT_GENERAL:""}
 
 # Initial message
 sys.stdout.write("Ethernet bridge for PRUserial485 - GENERAL commands\n")
@@ -145,6 +147,7 @@ def processThread_rw():
 
 
 def connectionThread(conn_port):
+    global connection_daemon
     while (True):
         try:
             # Opens TCP/IP socket
@@ -159,7 +162,9 @@ def connectionThread(conn_port):
                 # Wait for client connection
                 sys.stdout.write(time_string() + "Port {} waiting for connection\n".format(conn_port))
                 sys.stdout.flush()
+                connection_daemon[conn_port] = "Available" 
                 connection, client_info = server_socket.accept()
+                connection_daemon[conn_port] = client_info[0] 
 
                 # New connection
                 sys.stdout.write(time_string() + "Port {}: client {}:{} connected\n".format(conn_port, client_info[0], client_info[1]))
@@ -228,4 +233,33 @@ if (__name__ == '__main__'):
     connection_rw.start()
 
     while (True):
-        time.sleep(10)
+        try:
+            # Opens a Daemon TCP/IP socket - To signalize whether server is available
+            daemon_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            daemon_socket.bind(("", DAEMON_PORT))
+            daemon_socket.listen(1)
+            sys.stdout.write(time_string() + "TCP/IP daemon server on port {} started\n".format(DAEMON_PORT))
+            sys.stdout.flush()
+
+            while(True):
+                # Wait for ports to be available
+                while connection_daemon[SERVER_PORT_GENERAL] != "Available" or connection_daemon[SERVER_PORT_RW] != "Available":
+                    time.sleep(5)
+                    
+                # Wait for client connection
+                sys.stdout.write(time_string() + "Daemon port {} waiting for connection\n".format(DAEMON_PORT))
+                sys.stdout.flush()    
+                connection, client_info = daemon_socket.accept()
+
+                # New connection
+                sys.stdout.write(time_string() + "Daemon port {}: client {}:{} connected\n".format(DAEMON_PORT, client_info[0], client_info[1]))
+                sys.stdout.flush()
+                
+
+        except Exception:
+            daemon_socket.close()
+            sys.stdout.write(time_string() + "Connection problem on daemon port {}. Error message:\n\n".format(DAEMON_PORT))
+            traceback.print_exc(file = sys.stdout)
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+            time.sleep(5)
