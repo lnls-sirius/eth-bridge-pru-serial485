@@ -286,6 +286,6 @@ if (__name__ == '__main__'):
             time.sleep(5)
 
         # If daemon_socket is  blocking on accept() after ports unavailable anymore, force a connection to close it.
-        if not daemon_socket._closed:
+        if (connection_daemon[SERVER_PORT_GENERAL] != "Available" or connection_daemon[SERVER_PORT_RW] != "Available") and not daemon_socket._closed:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect(('127.0.0.1', DAEMON_PORT))
