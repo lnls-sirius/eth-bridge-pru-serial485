@@ -244,7 +244,7 @@ def daemon_server(daemon_port):
                     sys.stdout.flush()
 
                 # Close connection - if connection was forced
-                if client_info[0] != "127.0.0.1":
+                if client_info[0] == "127.0.0.1":
                     daemon_socket.close()
 
 
