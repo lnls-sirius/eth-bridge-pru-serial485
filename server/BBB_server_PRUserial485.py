@@ -222,6 +222,16 @@ def daemon_server(daemon_port):
                 while connection_daemon[SERVER_PORT_GENERAL] != "Available" or connection_daemon[SERVER_PORT_RW] != "Available":
                     time.sleep(1)
 
+                # Reopen socket if connection is closed. Wait SERVER_PORTS get available
+                if daemon_socket._closed:
+                    while connection_daemon[SERVER_PORT_GENERAL] != "Available" or connection_daemon[SERVER_PORT_RW] != "Available":
+                        time.sleep(1)
+                    daemon_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    daemon_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    daemon_socket.bind(("", DAEMON_PORT))
+                    daemon_socket.listen(1)
+
+
                 # Wait for client connection
                 if client_info[0] != "127.0.0.1":
                     sys.stdout.write(time_string() + "Daemon port {} waiting for connection\n".format(DAEMON_PORT))
@@ -232,6 +242,10 @@ def daemon_server(daemon_port):
                 if client_info[0] != "127.0.0.1":
                     sys.stdout.write(time_string() + "Daemon port {}: client {}:{} connected\n".format(DAEMON_PORT, client_info[0], client_info[1]))
                     sys.stdout.flush()
+
+                # Close connection - if connection was forced
+                if client_info[0] != "127.0.0.1":
+                    daemon_socket.close()
 
 
         except Exception:
@@ -289,3 +303,4 @@ if (__name__ == '__main__'):
         if (connection_daemon[SERVER_PORT_GENERAL] != "Available" or connection_daemon[SERVER_PORT_RW] != "Available") and not daemon_socket._closed:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect(('127.0.0.1', DAEMON_PORT))
+            time.sleep(1)

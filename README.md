@@ -5,6 +5,8 @@ This python module was developed to run PRUserial485 commands remotely in a Beag
 
 - **Port 5000**: for write/read commands, operations directly using serial RS485, which depends on the equipment response or serial line availability (blocking functions).
 - **Port 6000**: for general commands, which only depends on BBB memory access and answer is always immediate.
+- **Port 5500**: daemon socket. Connect to it to find out whether other ports are available. (you may use `wait-for-it`)
+
 
 
 ### Server side - Beaglebone Black
