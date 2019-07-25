@@ -192,8 +192,6 @@ def connectionThread(conn_port):
                                 queue_rw.put([command, message, connection])
                             else:
                                 queue_general.put([command, message, connection])
-                        else:
-                            print(len(message), data_size)
 
                     else:
                         sys.stdout.write(time_string() + "Client {}:{} disconnected on port {}.\n".format(client_info[0], client_info[1], conn_port))
