@@ -7,7 +7,7 @@ SERVER SIDE - BEAGLEBONE BLACK SCRIPT
 Author: Patricia Nallin
 
 Release:
-17/jul/2019
+25/jul/2019
 """
 
 import socket
@@ -29,7 +29,9 @@ SERVER_PORT_RW = 5000
 SERVER_PORT_GENERAL = 6000
 DAEMON_PORT = 5500
 connection_daemon = {SERVER_PORT_RW:"", SERVER_PORT_GENERAL:""}
-global daemon_socket
+
+# Initialize PRUserial485 - may be reinitialized if needed
+PRUserial485_open(6,b'M')
 
 # Initial message
 sys.stdout.write("Ethernet bridge for PRUserial485 - GENERAL commands\n")
@@ -185,10 +187,11 @@ def connectionThread(conn_port):
                         message += connection.recv(int(data_size % 4096), socket.MSG_WAITALL)
 
                         # Put operation in Queue
-                        if command == ord(COMMAND_PRUserial485_write) or command == ord(COMMAND_PRUserial485_read):
-                            queue_rw.put([command, message, connection])
-                        else:
-                            queue_general.put([command, message, connection])
+                        if len(message) == data_size:
+                            if command == ord(COMMAND_PRUserial485_write) or command == ord(COMMAND_PRUserial485_read):
+                                queue_rw.put([command, message, connection])
+                            else:
+                                queue_general.put([command, message, connection])
 
                     else:
                         sys.stdout.write(time_string() + "Client {}:{} disconnected on port {}.\n".format(client_info[0], client_info[1], conn_port))
@@ -234,13 +237,12 @@ def daemon_server(daemon_port):
 
                 # Wait for client connection
                 if client_info[0] != "127.0.0.1":
-                    sys.stdout.write(time_string() + "Daemon port {} waiting for connection\n".format(DAEMON_PORT))
+                    sys.stdout.write(time_string() + "Daemon port {} available\n".format(DAEMON_PORT))
                     sys.stdout.flush()
                 connection, client_info = daemon_socket.accept()
 
                 # New connection
                 if client_info[0] != "127.0.0.1":
-                    sys.stdout.write(time_string() + "Daemon port {}: client {}:{} connected\n".format(DAEMON_PORT, client_info[0], client_info[1]))
                     sys.stdout.flush()
 
                 # Close connection - if connection was forced
@@ -304,3 +306,5 @@ if (__name__ == '__main__'):
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.connect(('127.0.0.1', DAEMON_PORT))
             time.sleep(1)
+
+        time.sleep(5)
