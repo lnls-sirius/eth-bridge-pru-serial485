@@ -187,7 +187,7 @@ def clientThread(client_connection, client_info, conn_port):
 
 
 def connectionThread(conn_port):
-    global connection_daemon, connected_clients
+    global connected_clients
     while (True):
         try:
             # Opens TCP/IP socket
@@ -200,7 +200,6 @@ def connectionThread(conn_port):
 
             while(True):
                 # Wait for client connection
-                print("Connected clients on port {}: {}".format(conn_port,connected_clients[conn_port]))
                 connection, client_info = server_socket.accept()
 
                 # New connection
