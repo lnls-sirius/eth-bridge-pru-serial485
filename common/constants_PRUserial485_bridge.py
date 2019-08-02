@@ -19,6 +19,10 @@ COMMAND_PRUserial485_sync_status = b'\x0c'
 COMMAND_PRUserial485_read_pulse_count_sync = b'\x0d'
 COMMAND_PRUserial485_clear_pulse_count_sync = b'\x0e'
 
+# BBB Library version
+COMMAND_PRUserial485_version = b'\x0f'
+
+
 # Terminator
 BRIDGE_Terminator = b'\x55'
 

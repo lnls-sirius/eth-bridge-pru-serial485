@@ -372,6 +372,17 @@ def PRUserial485_clear_pulse_count_sync():
         return None
 
 
+def PRUserial485_version():
+    # Payload: none
+    """Only for remote library"""
+    payload = _c.COMMAND_PRUserial485_version
+    command, payload_recv = send_communication_data(payload)
+    if command == ord(_c.COMMAND_PRUserial485_version) and len(payload_recv):
+        return(payload_recv.decode())
+    else:
+        return None
+
+
 
 general_command_thread = Thread(target = socket_communicate, args = (SERVER_PORT_GENERAL, general_queue))
 general_command_thread.setDaemon(True)
