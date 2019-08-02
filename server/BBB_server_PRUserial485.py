@@ -22,7 +22,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.pardir,'common')))
 from constants_PRUserial485_bridge import *
 from functions_PRUserial485_bridge import *
 from queue import Queue
-from PRUserial485 import *
+import PRUserial485 as _lib
 
 # TCP port for PRUserial485 bridge - READ and WRITE functions
 SERVER_PORT_RW = 5000
@@ -31,7 +31,7 @@ DAEMON_PORT = 5500
 connection_daemon = {SERVER_PORT_RW:"", SERVER_PORT_GENERAL:""}
 
 # Initialize PRUserial485 - may be reinitialized if needed
-PRUserial485_open(6,b'M')
+_lib.PRUserial485_open(6,b'M')
 
 # Initial message
 sys.stdout.write("Ethernet bridge for PRUserial485 - GENERAL commands\n")
@@ -58,15 +58,15 @@ def processThread_general():
         if (item[0] == COMMAND_PRUserial485_open):
             baudrate = struct.unpack(">I", item[1][1:])[0]
             mode = item[1][0]
-            res = PRUserial485_open(baudrate,mode)
+            res = _lib.PRUserial485_open(baudrate,mode)
             answer = (ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_address):
-            res = PRUserial485_address()
+            res = _lib.PRUserial485_address()
             answer = (ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_close):
-            PRUserial485_close()
+            _lib.PRUserial485_close()
             answer = (ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_curve):
@@ -75,51 +75,55 @@ def processThread_general():
             curves = []
             for curve in range (4):
                 curves.append([struct.unpack(">f", item[1][4*i + 1:4*i+4 + 1])[0] for i in range((curve*curve_size), (curve+1)*curve_size)])
-            res = PRUserial485_curve(curves[0], curves[1], curves[2], curves[3], block)
+            res = _lib.PRUserial485_curve(curves[0], curves[1], curves[2], curves[3], block)
             answer = (ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_set_curve_block):
-            PRUserial485_set_curve_block(item[1][0])
+            _lib.PRUserial485_set_curve_block(item[1][0])
             answer = (ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_read_curve_block):
-            res = PRUserial485_read_curve_block()
+            res = _lib.PRUserial485_read_curve_block()
             answer = (ANSWER_Ok +  struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_set_curve_pointer):
             new_pointer = struct.unpack(">I", item[1])[0]
-            PRUserial485_set_curve_pointer(new_pointer)
+            _lib.PRUserial485_set_curve_pointer(new_pointer)
             answer = (ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_read_curve_pointer):
-            res = PRUserial485_read_curve_pointer()
+            res = _lib.PRUserial485_read_curve_pointer()
             answer = (ANSWER_Ok + struct.pack(">I", res))
 
         elif (item[0] == COMMAND_PRUserial485_sync_start):
             sync_mode = item[1][0]
             delay = struct.unpack(">I", item[1][1:5])[0]
             sync_address = item[1][5]
-            PRUserial485_sync_start(sync_mode, delay, sync_address)
+            _lib.PRUserial485_sync_start(sync_mode, delay, sync_address)
             answer = (ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_sync_stop):
-            PRUserial485_sync_stop()
+            _lib.PRUserial485_sync_stop()
             answer = (ANSWER_Ok)
 
         elif (item[0] == COMMAND_PRUserial485_sync_status):
-            if PRUserial485_sync_status():
+            if _lib.PRUserial485_sync_status():
                 res = b'\x01'
             else:
                 res = b'\x00'
             answer = (ANSWER_Ok + res)
 
         elif (item[0] == COMMAND_PRUserial485_read_pulse_count_sync):
-            res = PRUserial485_read_pulse_count_sync()
+            res = _lib.PRUserial485_read_pulse_count_sync()
             answer = (ANSWER_Ok + struct.pack(">I", res))
 
         elif (item[0] == COMMAND_PRUserial485_clear_pulse_count_sync):
-            res = PRUserial485_clear_pulse_count_sync()
+            res = _lib.PRUserial485_clear_pulse_count_sync()
             answer = (ANSWER_Ok + struct.pack("B", res))
+
+
+        elif (item[0] == COMMAND_PRUserial485_version):
+            answer = (ANSWER_Ok + _lib.__version__.encode())
 
 
         answer = item[0] + answer[1:]
@@ -138,11 +142,11 @@ def processThread_rw():
         if (item[0] == COMMAND_PRUserial485_write):
             timeout = struct.unpack(">f", item[1][:4])[0]
             data = [chr(i) for i in item[1][4:]]
-            res = PRUserial485_write(data, timeout)
+            res = _lib.PRUserial485_write(data, timeout)
             answer = (ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_read):
-            res = bytearray([ord(i) for i in PRUserial485_read()])
+            res = bytearray([ord(i) for i in _lib.PRUserial485_read()])
             answer = (ANSWER_Ok + res)
 
         answer = item[0] + answer[1:]
