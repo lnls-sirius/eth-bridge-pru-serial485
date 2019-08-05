@@ -147,7 +147,7 @@ def processThread_rw():
             timeout = struct.unpack(">f", item[1][:4])[0]
             data = [chr(i) for i in item[1][4:]]
             res = _lib.PRUserial485_write(data, timeout)
-            read_data[client_connection] = _lib.PRUserial485_read()
+            read_data[client] = _lib.PRUserial485_read()
             answer = (ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_read):
