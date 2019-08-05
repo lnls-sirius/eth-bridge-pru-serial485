@@ -38,17 +38,19 @@ read_data = {}
 _lib.PRUserial485_open(6,b'M')
 
 # Initial message
-sys.stdout.write("Ethernet bridge for PRUserial485 - GENERAL commands\n")
+sys.stdout.write("Ethernet bridge for PRUserial485\n")
 sys.stdout.flush()
 
 
 def time_string():
     return(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f") + " - ")
 
+
 def payload_length(payload):
     """."""
     return(struct.pack("B", payload[0]) +
            struct.pack(">I", (len(payload)-1)) + payload[1:])
+
 
 def processThread_general():
     while (True):
@@ -190,7 +192,6 @@ def clientThread(client_connection, client_info, conn_port):
             sys.stdout.write(time_string() + "Client {}:{} disconnected on port {}.\n".format(client_info[0], client_info[1], conn_port))
             sys.stdout.flush()
             break
-
 
 
 def connectionThread(conn_port):
