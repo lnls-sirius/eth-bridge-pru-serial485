@@ -28,11 +28,16 @@ import PRUserial485 as _lib
 SERVER_PORT_RW = 5000
 SERVER_PORT_GENERAL = 6000
 DAEMON_PORT = 5500
+<<<<<<< HEAD
 
 # Multi-client variables
 global connected_clients, read_data
 connected_clients = {SERVER_PORT_RW:[], SERVER_PORT_GENERAL:[]}
 read_data = {}
+=======
+global connected_clients
+connected_clients = {SERVER_PORT_RW:[], SERVER_PORT_GENERAL:[]}
+>>>>>>> 35b1401d8c4ec46959888561b5a95c49528d8c68
 
 # Initialize PRUserial485 - may be reinitialized if needed
 _lib.PRUserial485_open(6,b'M')
@@ -159,9 +164,14 @@ def processThread_rw():
 
 
 def clientThread(client_connection, client_info, conn_port):
+<<<<<<< HEAD
     global connected_clients, read_data
     connected_clients[conn_port].append(client_info)
     read_data[client_connection] = []
+=======
+    global connected_clients
+    connected_clients[conn_port].append(client_info)
+>>>>>>> 35b1401d8c4ec46959888561b5a95c49528d8c68
 
     while (True):
         # Message header - Operation command (1 byte) + data size (4 bytes)
@@ -186,7 +196,10 @@ def clientThread(client_connection, client_info, conn_port):
 
         else:
             connected_clients[conn_port].remove(client_info)
+<<<<<<< HEAD
             read_data.pop(client_connection)
+=======
+>>>>>>> 35b1401d8c4ec46959888561b5a95c49528d8c68
             sys.stdout.write(time_string() + "Client {}:{} disconnected on port {}.\n".format(client_info[0], client_info[1], conn_port))
             sys.stdout.flush()
             break
