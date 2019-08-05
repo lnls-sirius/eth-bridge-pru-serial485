@@ -162,6 +162,7 @@ def clientThread(client_connection, client_info, conn_port):
     global connected_clients, read_data
     connected_clients[conn_port].append(client_info)
     read_data[client_connection] = []
+    print(read_data)
 
     while (True):
         # Message header - Operation command (1 byte) + data size (4 bytes)
