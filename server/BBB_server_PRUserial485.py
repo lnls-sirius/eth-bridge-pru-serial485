@@ -151,7 +151,7 @@ def processThread_rw():
             answer = (ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_read):
-            res = bytearray([ord(i) for i in read_data[client_connection])
+            res = bytearray([ord(i) for i in read_data[client_connection]])
             answer = (ANSWER_Ok + res)
 
         answer = item[0] + answer[1:]
