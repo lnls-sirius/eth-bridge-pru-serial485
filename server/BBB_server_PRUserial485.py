@@ -151,7 +151,7 @@ def processThread_rw():
             answer = (ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_read):
-            res = bytearray([ord(i) for i in read_data[client_connection]])
+            res = bytearray([ord(i) for i in read_data[client]])
             answer = (ANSWER_Ok + res)
 
         answer = item[0] + answer[1:]
@@ -162,7 +162,6 @@ def clientThread(client_connection, client_info, conn_port):
     global connected_clients, read_data
     connected_clients[conn_port].append(client_info)
     read_data[client_connection] = []
-    print(read_data)
 
     while (True):
         # Message header - Operation command (1 byte) + data size (4 bytes)
