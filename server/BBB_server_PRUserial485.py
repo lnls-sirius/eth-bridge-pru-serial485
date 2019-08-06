@@ -7,7 +7,7 @@ SERVER SIDE - BEAGLEBONE BLACK SCRIPT
 Author: Patricia Nallin
 
 Release:
-25/jul/2019
+06/aug/2019
 """
 
 import socket
@@ -121,9 +121,14 @@ def processThread_general():
             res = _lib.PRUserial485_clear_pulse_count_sync()
             answer = (ANSWER_Ok + struct.pack("B", res))
 
-
         elif (item[0] == COMMAND_PRUserial485_version):
             answer = (ANSWER_Ok + _lib.__version__.encode())
+
+        elif (item[0] == COMMAND_PRUserial485_server_eth_version):
+            with open(version_file_path, 'r') as _f:
+                server_version = _f.read().strip()
+            server_version += ":" + subprocess.getoutput('git log --format=%h -1')
+            answer = (ANSWER_Ok + server_version.encode())
 
 
         answer = item[0] + answer[1:]
