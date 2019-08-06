@@ -7,8 +7,7 @@ SERVER SIDE - BEAGLEBONE BLACK SCRIPT
 Author: Patricia Nallin
 
 Release:
-05/aug/2019
-"""
+06/aug/2019
 
 import socket
 import time
@@ -17,6 +16,7 @@ import struct
 import threading
 import traceback
 import os.path
+import subprocess
 import datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.pardir,'common')))
 from constants_PRUserial485_bridge import *
@@ -129,6 +129,12 @@ def processThread_general():
 
         elif (item[0] == COMMAND_PRUserial485_version):
             answer = (ANSWER_Ok + _lib.__version__.encode())
+
+        elif (item[0] == COMMAND_PRUserial485_server_eth_version):
+            with open(version_file_path, 'r') as _f:
+                server_version = _f.read().strip()
+            server_version += ":" + subprocess.getoutput('git log --format=%h -1')
+            answer = (ANSWER_Ok + server_version.encode())
 
 
         answer = item[0] + answer[1:]

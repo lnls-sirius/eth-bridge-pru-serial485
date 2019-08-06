@@ -8,7 +8,7 @@ CLIENT SIDE - PRUserial485 via Ethernet bridge
 Author: Patricia Nallin
 
 Release Date:
-05/ago/2019
+06/aug/2019
 
 Bytes:
 - 0: command
@@ -146,7 +146,11 @@ def socket_communicate(conn_port, data_queue):
 
         # Receive prefix: command (1 byte) + data_size (4 bytes)
         if remote_socket_connected:
-            answer = remote_socket.recv(5)
+            try:
+                answer = remote_socket.recv(5)
+            except ConnectionResetError:
+                # This except might happen when server is suddenly stopped
+                answer = []
 
         if answer:
             command_recv = answer[0]
@@ -158,9 +162,13 @@ def socket_communicate(conn_port, data_queue):
         # Receive data/payload
         payload = b''
         if(data_size):
-            for i in range(int(data_size / 4096)):
-                payload += remote_socket.recv(4096, socket.MSG_WAITALL)
-            payload += remote_socket.recv(int(data_size % 4096), socket.MSG_WAITALL)
+            try:
+                for i in range(int(data_size / 4096)):
+                    payload += remote_socket.recv(4096, socket.MSG_WAITALL)
+                payload += remote_socket.recv(int(data_size % 4096), socket.MSG_WAITALL)
+            except ConnectionResetError:
+                # This except might happen when server is suddenly stopped
+                payload = b''
 
         # Store answer and notify function
         answers[report_event] = (command_recv, payload)
@@ -381,6 +389,16 @@ def PRUserial485_version():
     payload = _c.COMMAND_PRUserial485_version
     command, payload_recv = send_communication_data(payload)
     if command == ord(_c.COMMAND_PRUserial485_version) and len(payload_recv):
+        return(payload_recv.decode())
+    else:
+        return None
+
+def PRUserial485_server_version():
+    # Payload: none
+    """Only for remote library"""
+    payload = _c.COMMAND_PRUserial485_server_eth_version
+    command, payload_recv = send_communication_data(payload)
+    if command == ord(_c.COMMAND_PRUserial485_server_eth_version) and len(payload_recv):
         return(payload_recv.decode())
     else:
         return None
