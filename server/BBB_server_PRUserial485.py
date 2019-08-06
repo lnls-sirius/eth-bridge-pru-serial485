@@ -25,27 +25,33 @@ from functions_PRUserial485_bridge import *
 from queue import Queue
 import PRUserial485 as _lib
 
-# TCP port for PRUserial485 bridge - READ and WRITE functions
+# TCP port for PRUserial485 bridge
 SERVER_PORT_RW = 5000
 SERVER_PORT_GENERAL = 6000
 DAEMON_PORT = 5500
-connection_daemon = {SERVER_PORT_RW:"", SERVER_PORT_GENERAL:""}
+
+# Multi-client variables
+global connected_clients, read_data
+connected_clients = {SERVER_PORT_RW:[], SERVER_PORT_GENERAL:[]}
+read_data = {}
 
 # Initialize PRUserial485 - may be reinitialized if needed
 _lib.PRUserial485_open(6,b'M')
 
 # Initial message
-sys.stdout.write("Ethernet bridge for PRUserial485 - GENERAL commands\n")
+sys.stdout.write("Ethernet bridge for PRUserial485\n")
 sys.stdout.flush()
 
 
 def time_string():
     return(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f") + " - ")
 
+
 def payload_length(payload):
     """."""
     return(struct.pack("B", payload[0]) +
            struct.pack(">I", (len(payload)-1)) + payload[1:])
+
 
 def processThread_general():
     while (True):
@@ -137,6 +143,7 @@ def processThread_general():
 
 
 def processThread_rw():
+    global read_data
     while (True):
         # Get next operation
         item = queue_rw.get(block = True)
@@ -149,64 +156,75 @@ def processThread_rw():
             timeout = struct.unpack(">f", item[1][:4])[0]
             data = [chr(i) for i in item[1][4:]]
             res = _lib.PRUserial485_write(data, timeout)
+            read_data[client] = _lib.PRUserial485_read()
             answer = (ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_read):
-            res = bytearray([ord(i) for i in _lib.PRUserial485_read()])
+            res = bytearray([ord(i) for i in read_data[client]])
             answer = (ANSWER_Ok + res)
 
         answer = item[0] + answer[1:]
         client.sendall(payload_length(answer))
 
 
+def clientThread(client_connection, client_info, conn_port):
+    global connected_clients, read_data
+    connected_clients[conn_port].append(client_info)
+    read_data[client_connection] = []
+
+    while (True):
+        # Message header - Operation command (1 byte) + data size (4 bytes)
+        data = client_connection.recv(5)
+
+        if(len(data) == 5):
+            command = data[0]
+            data_size = struct.unpack(">I", data[1:])[0]
+
+            # Get message
+            message = b''
+            for i in range(int(data_size / 4096)):
+                message += client_connection.recv(4096, socket.MSG_WAITALL)
+            message += client_connection.recv(int(data_size % 4096), socket.MSG_WAITALL)
+
+            # Put operation in Queue
+            if len(message) == data_size:
+                if command == ord(COMMAND_PRUserial485_write) or command == ord(COMMAND_PRUserial485_read):
+                    queue_rw.put([command, message, client_connection])
+                else:
+                    queue_general.put([command, message, client_connection])
+
+        else:
+            connected_clients[conn_port].remove(client_info)
+            read_data.pop(client_connection)
+            sys.stdout.write(time_string() + "Client {}:{} disconnected on port {}.\n".format(client_info[0], client_info[1], conn_port))
+            sys.stdout.flush()
+            break
+
+
 def connectionThread(conn_port):
-    global connection_daemon
+    global connected_clients
     while (True):
         try:
             # Opens TCP/IP socket
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             server_socket.bind(("", conn_port))
             server_socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
-            server_socket.listen(1)
-            sys.stdout.write(time_string() + "TCP/IP server on port {} started\n".format(conn_port))
+            server_socket.listen(5)
+            sys.stdout.write(time_string() + "TCP/IP server on port {} started and waiting for connection\n".format(conn_port))
             sys.stdout.flush()
 
             while(True):
                 # Wait for client connection
-                sys.stdout.write(time_string() + "Port {} waiting for connection\n".format(conn_port))
-                sys.stdout.flush()
-                connection_daemon[conn_port] = "Available"
                 connection, client_info = server_socket.accept()
-                connection_daemon[conn_port] = client_info[0]
 
                 # New connection
                 sys.stdout.write(time_string() + "Port {}: client {}:{} connected\n".format(conn_port, client_info[0], client_info[1]))
                 sys.stdout.flush()
 
-                while (True):
-                    # Message header - Operation command (1 byte) + data size (4 bytes)
-                    data = connection.recv(5)
-                    if(data):
-                        command = data[0]
-                        data_size = struct.unpack(">I", data[1:])[0]
+                new_client_thread = threading.Thread(target = clientThread, args = [connection, client_info, conn_port])
+                new_client_thread.setDaemon(True)
+                new_client_thread.start()
 
-                        # Get message
-                        message = b''
-                        for i in range(int(data_size / 4096)):
-                            message += connection.recv(4096, socket.MSG_WAITALL)
-                        message += connection.recv(int(data_size % 4096), socket.MSG_WAITALL)
-
-                        # Put operation in Queue
-                        if len(message) == data_size:
-                            if command == ord(COMMAND_PRUserial485_write) or command == ord(COMMAND_PRUserial485_read):
-                                queue_rw.put([command, message, connection])
-                            else:
-                                queue_general.put([command, message, connection])
-
-                    else:
-                        sys.stdout.write(time_string() + "Client {}:{} disconnected on port {}.\n".format(client_info[0], client_info[1], conn_port))
-                        sys.stdout.flush()
-                        break
 
         except Exception:
             server_socket.close()
@@ -218,8 +236,6 @@ def connectionThread(conn_port):
 
 
 def daemon_server(daemon_port):
-    global daemon_socket
-    client_info = [""]
     while (True):
         try:
             # Opens a Daemon TCP/IP socket - To signalize whether server is available
@@ -231,34 +247,7 @@ def daemon_server(daemon_port):
             sys.stdout.flush()
 
             while(True):
-                # Wait for ports to be available
-                while connection_daemon[SERVER_PORT_GENERAL] != "Available" or connection_daemon[SERVER_PORT_RW] != "Available":
-                    time.sleep(1)
-
-                # Reopen socket if connection is closed. Wait SERVER_PORTS get available
-                if daemon_socket._closed:
-                    while connection_daemon[SERVER_PORT_GENERAL] != "Available" or connection_daemon[SERVER_PORT_RW] != "Available":
-                        time.sleep(1)
-                    daemon_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    daemon_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                    daemon_socket.bind(("", DAEMON_PORT))
-                    daemon_socket.listen(1)
-
-
-                # Wait for client connection
-                if client_info[0] != "127.0.0.1":
-                    sys.stdout.write(time_string() + "Daemon port {} available\n".format(DAEMON_PORT))
-                    sys.stdout.flush()
                 connection, client_info = daemon_socket.accept()
-
-                # New connection
-                if client_info[0] != "127.0.0.1":
-                    sys.stdout.flush()
-
-                # Close connection - if connection was forced
-                if client_info[0] == "127.0.0.1":
-                    daemon_socket.close()
-
 
         except Exception:
             daemon_socket.close()
@@ -299,22 +288,10 @@ if (__name__ == '__main__'):
     connection_rw.setDaemon(True)
     connection_rw.start()
 
-
-    # Daemon thread
+    # Daemon thread - Not used yet
     daemon_thread = threading.Thread(target = daemon_server, args = [DAEMON_PORT])
     daemon_thread.setDaemon(True)
     daemon_thread.start()
 
-    time.sleep(1)
-
     while (True):
-        while connection_daemon[SERVER_PORT_GENERAL] == "Available" and connection_daemon[SERVER_PORT_RW] == "Available":
-            time.sleep(5)
-
-        # If daemon_socket is  blocking on accept() after ports unavailable anymore, force a connection to close it.
-        if (connection_daemon[SERVER_PORT_GENERAL] != "Available" or connection_daemon[SERVER_PORT_RW] != "Available") and not daemon_socket._closed:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect(('127.0.0.1', DAEMON_PORT))
-            time.sleep(1)
-
-        time.sleep(5)
+        time.sleep(10)

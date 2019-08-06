@@ -47,25 +47,28 @@ answers = {}
 
 
 
-def set_beaglebone_ip(bbbname=None):
+def set_beaglebone_ip(bbbname=None, ip=None):
     """."""
     global BBB_NAME
     global BBB_IP
+    if ip is None:
+        if bbbname is None:
+            bbbname = socket.gethostname()
 
-    if bbbname is None:
-        bbbname = socket.gethostname()
+        BBB_NAME = bbbname.replace('--', ':')
+        BBB_IP = _find_BBB_IP(BBB_NAME)
+        if BBB_IP == '':
+            sys.stdout.write(_util.get_timestamp() +
+                             ": Beaglebone IP not found. Please check BBB NAME\n")
+            sys.stdout.flush()
+            sys.exit()
+            sys.stdout.write(_util.get_timestamp() + ": '" + BBB_NAME + "'" +
+                             " will be connected on " + BBB_IP + "\n")
+            sys.stdout.flush()
+    else:
+        BBB_IP = ip
 
-    BBB_NAME = bbbname.replace('--', ':')
-    BBB_IP = _find_BBB_IP(BBB_NAME)
-    if BBB_IP == '':
-        sys.stdout.write(_util.get_timestamp() +
-                         ": Beaglebone IP not found. Please check BBB NAME\n")
-        sys.stdout.flush()
-        sys.exit()
 
-    sys.stdout.write(_util.get_timestamp() + ": '" + BBB_NAME + "'" +
-                     " will be connected on " + BBB_IP + "\n")
-    sys.stdout.flush()
 
 
 
