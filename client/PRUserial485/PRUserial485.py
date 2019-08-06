@@ -143,7 +143,11 @@ def socket_communicate(conn_port, data_queue):
 
         # Receive prefix: command (1 byte) + data_size (4 bytes)
         if remote_socket_connected:
-            answer = remote_socket.recv(5)
+            try:
+                answer = remote_socket.recv(5)
+            except ConnectionResetError:
+                # This except might happen when server is suddenly stopped
+                answer = []
 
         if answer:
             command_recv = answer[0]
@@ -155,9 +159,13 @@ def socket_communicate(conn_port, data_queue):
         # Receive data/payload
         payload = b''
         if(data_size):
-            for i in range(int(data_size / 4096)):
-                payload += remote_socket.recv(4096, socket.MSG_WAITALL)
-            payload += remote_socket.recv(int(data_size % 4096), socket.MSG_WAITALL)
+            try:
+                for i in range(int(data_size / 4096)):
+                    payload += remote_socket.recv(4096, socket.MSG_WAITALL)
+                payload += remote_socket.recv(int(data_size % 4096), socket.MSG_WAITALL)
+            except ConnectionResetError:
+                # This except might happen when server is suddenly stopped
+                payload = b''
 
         # Store answer and notify function
         answers[report_event] = (command_recv, payload)
