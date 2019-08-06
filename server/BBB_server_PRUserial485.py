@@ -134,8 +134,7 @@ def processThread_general():
         elif (item[0] == COMMAND_PRUserial485_server_eth_version):
             with open(version_file_path, 'r') as _f:
                 server_version = _f.read().strip()
-            server_version += ":" + subprocess.getoutput('pushd ' + server_files_path +
-                                    '; git log --format=%h -1; popd ')
+            server_version += ":" + subprocess.getoutput('git log --format=%h -1')
             answer = (ANSWER_Ok + server_version.encode())
 
 
