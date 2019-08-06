@@ -18,6 +18,7 @@ import threading
 import traceback
 import os.path
 import datetime
+import subprocess
 sys.path.append(os.path.abspath(os.path.join(os.path.pardir,'common')))
 from constants_PRUserial485_bridge import *
 from functions_PRUserial485_bridge import *
@@ -131,8 +132,10 @@ def processThread_general():
             answer = (ANSWER_Ok + _lib.__version__.encode())
 
         elif (item[0] == COMMAND_PRUserial485_server_eth_version):
-            with open(version_file_path, 'VERSION'), 'r') as _f:
+            with open(version_file_path, 'r') as _f:
                 server_version = _f.read().strip()
+            server_version += ":" + subprocess.getoutput('pushd ' + server_files_path +
+                                    '; git log --format=%h -1; cd ' + popd)
             answer = (ANSWER_Ok + server_version.encode())
 
 
