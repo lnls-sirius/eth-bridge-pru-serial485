@@ -385,6 +385,16 @@ def PRUserial485_version():
     else:
         return None
 
+def PRUserial485_server_version():
+    # Payload: none
+    """Only for remote library"""
+    payload = _c.COMMAND_PRUserial485_server_eth_version
+    command, payload_recv = send_communication_data(payload)
+    if command == ord(_c.COMMAND_PRUserial485_server_eth_version) and len(payload_recv):
+        return(payload_recv.decode())
+    else:
+        return None
+
 
 
 general_command_thread = Thread(target = socket_communicate, args = (SERVER_PORT_GENERAL, general_queue))

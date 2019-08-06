@@ -130,6 +130,11 @@ def processThread_general():
         elif (item[0] == COMMAND_PRUserial485_version):
             answer = (ANSWER_Ok + _lib.__version__.encode())
 
+        elif (item[0] == COMMAND_PRUserial485_server_eth_version):
+            with open(version_file_path, 'VERSION'), 'r') as _f:
+                server_version = _f.read().strip()
+            answer = (ANSWER_Ok + server_version.encode())
+
 
         answer = item[0] + answer[1:]
         client.sendall(payload_length(answer))
