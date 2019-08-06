@@ -135,7 +135,7 @@ def processThread_general():
             with open(version_file_path, 'r') as _f:
                 server_version = _f.read().strip()
             server_version += ":" + subprocess.getoutput('pushd ' + server_files_path +
-                                    '; git log --format=%h -1; cd ' + popd)
+                                    '; git log --format=%h -1; popd ')
             answer = (ANSWER_Ok + server_version.encode())
 
 
