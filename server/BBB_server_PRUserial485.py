@@ -10,6 +10,8 @@ Release:
 06/aug/2019
 """
 
+RELEASE_DATE = "06/aug/2019"
+
 import socket
 import time
 import sys
@@ -264,6 +266,7 @@ def daemon_server(daemon_port):
 if (__name__ == '__main__'):
 
     sys.stdout.write("----- TCP/IP SERVER FOR PRUSERIAL485 -----\n")
+    sys.stdout.write("----- Release date: {} -----\n".format(RELEASE_DATE))
     sys.stdout.write(time_string() + "Initialization.\n")
     sys.stdout.flush()
 
