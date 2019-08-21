@@ -7,10 +7,10 @@ SERVER SIDE - BEAGLEBONE BLACK SCRIPT
 Author: Patricia Nallin
 
 Release:
-06/aug/2019
+21/aug/2019
 """
 
-RELEASE_DATE = "06/aug/2019"
+RELEASE_DATE = "21/aug/2019"
 
 import socket
 import time
@@ -209,6 +209,7 @@ def connectionThread(conn_port):
         try:
             # Opens TCP/IP socket
             server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_socket.bind(("", conn_port))
             server_socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
             server_socket.listen(5)
