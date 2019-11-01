@@ -16,9 +16,9 @@ Bytes:
 - 5.. : payload
 
 Note: library clients should first
-       a) set module "BBB_IP" and
+       a) invoke function "PRUserial_set_bbb_ip_address" and
        b) invoke function "PRUserial485_threads_start",
-      before running communication functions.
+      before using communication functions.
 """
 
 import socket
@@ -33,7 +33,7 @@ SERVER_PORT_GENERAL = 6000
 
 
 # BeagleBone IP
-BBB_IP = ''
+BBB_IP = None
 
 
 # Queues
@@ -80,6 +80,9 @@ def payload_length(payload):
 def socket_communicate(conn_port, data_queue):
     """."""
     # Create socket connection
+    if BBB_IP is None:
+        raise ValueError('BeagleBone IP address undefined!')
+
     remote_socket = socket.socket(socket.AF_INET,
                                   socket.SOCK_STREAM)
     remote_socket.connect((BBB_IP, conn_port))
@@ -174,6 +177,12 @@ def send_communication_data(payload):
     del notification_event
 
     return command, payload_recv
+
+
+def PRUserial485_set_bbb_ip_address(ip_address):
+    """Define beaglebone IP address."""
+    global BBB_IP
+    BBB_IP = ip_address
 
 
 def PRUserial485_open(baudrate=6, mode=b'M'):
