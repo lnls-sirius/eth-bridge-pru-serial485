@@ -177,7 +177,11 @@ def _send_communication_data(payload):
 def PRUserial485_set_bbb_ip_address(ip_address):
     """Define beaglebone IP address."""
     global BBB_IP
-    BBB_IP = ip_address
+    if ip_address.startswith('10.128') and \
+       len(ip_address.split('.')) == 4:
+        BBB_IP = ip_address
+    else:
+        raise ValueError('Invalid IP')
 
 
 def PRUserial485_open(baudrate=6, mode=b'M'):
