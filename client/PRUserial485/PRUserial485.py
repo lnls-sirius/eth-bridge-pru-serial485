@@ -14,11 +14,6 @@ Bytes:
 - 0: command
 - 1..4: payload length
 - 5.. : payload
-
-Note: library clients should first
-       a) invoke function "PRUserial_set_bbb_ip_address" and
-       b) invoke function "PRUserial485_threads_start",
-      before using communication functions.
 """
 
 import socket
