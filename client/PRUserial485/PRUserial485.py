@@ -162,6 +162,118 @@ class EthBrigdeClient:
         else:
             return None
 
+    # ---
+
+    def curve(self, curve1, curve2, curve3, curve4, block=0):
+        """Carregamento de curva."""
+        # Payload: BLOCK (1 byte) +
+        if len(curve1) == len(curve2) == len(curve3) == len(curve4) and \
+                block in _c.AVAILABLE_CURVE_BLOCKS:
+            payload = _c.COMMAND_PRUserial485_curve + struct.pack("B", block)
+            data1 = (struct.pack(">f", point) for point in curve1)
+            data2 = (struct.pack(">f", point) for point in curve2)
+            data3 = (struct.pack(">f", point) for point in curve3)
+            data4 = (struct.pack(">f", point) for point in curve4)
+            payload += \
+                b''.join(data1) + b''.join(data2) + \
+                b''.join(data3) + b''.join(data4)
+            command, payload_recv = self._send_communication_data(payload)
+            if command == ord(_c.COMMAND_PRUserial485_curve) and \
+                    len(payload_recv) == 1:
+                return ord(payload_recv)
+            else:
+                return None
+
+    def set_curve_block(self, block=0):
+        """Selecao de bloco de curva a ser realizado."""
+        # Payload: BLOCK (1 byte)
+        if block in _c.AVAILABLE_CURVE_BLOCKS:
+            payload = _c.COMMAND_PRUserial485_set_curve_block + \
+                struct.pack("B", block)
+            self._send_communication_data(payload)
+
+    def read_curve_block(self):
+        """Leitura do bloco de curva que sera realizado."""
+        # Payload: none
+        payload = _c.COMMAND_PRUserial485_read_curve_block
+        command, payload_recv = self._send_communication_data(payload)
+        if command == ord(_c.COMMAND_PRUserial485_read_curve_block) and \
+                len(payload_recv) == 1:
+            return ord(payload_recv)
+        else:
+            return None
+
+    def set_curve_pointer(self, pointer=0):
+        """Ajusta ponteiro para proximo ponto a ser executado (curva)."""
+        # Payload: POINTER (4 bytes)
+        if pointer > 0:
+            payload = _c.COMMAND_PRUserial485_set_curve_pointer + \
+                struct.pack(">I", pointer)
+            self._send_communication_data(payload)
+
+    def read_curve_pointer(self):
+        """Leitura do ponteiro de curva (proximo ponto que sera executado)."""
+        # Payload: none
+        payload = _c.COMMAND_PRUserial485_read_curve_pointer
+        command, payload_recv = self._send_communication_data(payload)
+        if command == ord(_c.COMMAND_PRUserial485_read_curve_pointer) and \
+                len(payload_recv) == 4:
+            return struct.unpack(">I", payload_recv)[0]
+        else:
+            return None
+
+    def sync_start(self, sync_mode, delay, sync_address=0x00):
+        """Inicia operação em modo síncrono."""
+        # Payload: SYNC_MODE (1 byte) + DELAY (4 bytes) + SYNC_ADDRESS (1 byte)
+        if (sync_mode in _c.AVAILABLE_SYNC_MODES) and (delay >= 0) and \
+                (sync_address >= 0):
+            payload = _c.COMMAND_PRUserial485_sync_start + \
+                struct.pack("B", sync_mode) + struct.pack(">I", delay) + \
+                struct.pack("B", sync_address)
+            self._send_communication_data(payload)
+
+    def sync_stop(self):
+        """Finaliza a operação em modo síncrono."""
+        # Payload: none
+        payload = _c.COMMAND_PRUserial485_sync_stop
+        self._send_communication_data(payload)
+
+    def sync_status(self):
+        """Verifica se sincronismo via PRU está aguardando pulso."""
+        # Payload: none
+        payload = _c.COMMAND_PRUserial485_sync_status
+        command, payload_recv = self._send_communication_data(payload)
+        if command == ord(_c.COMMAND_PRUserial485_sync_status) and \
+                len(payload_recv) == 1:
+            if ord(payload_recv) == 0:
+                return False
+            else:
+                return True
+        else:
+            return None
+
+    def read_pulse_count_sync(self):
+        """Leitura do contador de pulsos - Sync."""
+        # Payload: none
+        payload = _c.COMMAND_PRUserial485_read_pulse_count_sync
+        command, payload_recv = self._send_communication_data(payload)
+        if command == ord(_c.COMMAND_PRUserial485_read_pulse_count_sync) and \
+                len(payload_recv) == 4:
+            return struct.unpack(">I", payload_recv)[0]
+        else:
+            return None
+
+    def clear_pulse_count_sync(self):
+        # Payload: none
+        """Zera contador de pulsos - Sync."""
+        payload = _c.COMMAND_PRUserial485_clear_pulse_count_sync
+        command, payload_recv = self._send_communication_data(payload)
+        if command == ord(_c.COMMAND_PRUserial485_clear_pulse_count_sync) and \
+                len(payload_recv) == 1:
+            return ord(payload_recv)
+        else:
+            return None
+
     # --- aux. methods ---
 
     def _threads_create(self):
@@ -291,121 +403,3 @@ class EthBrigdeClient:
         del notification_event
 
         return command, payload_recv
-
-
-
-def PRUserial485_curve(curve1, curve2, curve3, curve4, block=0):
-    """Carregamento de curva."""
-    # Payload: BLOCK (1 byte) +
-    if len(curve1) == len(curve2) == len(curve3) == len(curve4) and block in \
-       _c.AVAILABLE_CURVE_BLOCKS:
-        payload = _c.COMMAND_PRUserial485_curve + struct.pack("B", block)
-        payload += b''.join((struct.pack(">f", point) for point in curve1)) + \
-                   b''.join((struct.pack(">f", point) for point in curve2)) + \
-                   b''.join((struct.pack(">f", point) for point in curve3)) + \
-                   b''.join((struct.pack(">f", point) for point in curve4))
-        command, payload_recv = _send_communication_data(payload)
-        if command == ord(_c.COMMAND_PRUserial485_curve) and \
-           len(payload_recv) == 1:
-            return ord(payload_recv)
-        else:
-            return None
-
-
-def PRUserial485_set_curve_block(block=0):
-    """Selecao de bloco de curva a ser realizado."""
-    # Payload: BLOCK (1 byte)
-    if block in _c.AVAILABLE_CURVE_BLOCKS:
-        payload = _c.COMMAND_PRUserial485_set_curve_block + \
-            struct.pack("B", block)
-        _send_communication_data(payload)
-
-
-def PRUserial485_read_curve_block():
-    """Leitura do bloco de curva que sera realizado."""
-    # Payload: none
-    payload = _c.COMMAND_PRUserial485_read_curve_block
-    command, payload_recv = _send_communication_data(payload)
-    if command == ord(_c.COMMAND_PRUserial485_read_curve_block) and \
-       len(payload_recv) == 1:
-        return ord(payload_recv)
-    else:
-        return None
-
-
-def PRUserial485_set_curve_pointer(pointer=0):
-    """Ajusta ponteiro para proximo ponto a ser executado (curva)."""
-    # Payload: POINTER (4 bytes)
-    if pointer > 0:
-        payload = _c.COMMAND_PRUserial485_set_curve_pointer + \
-            struct.pack(">I", pointer)
-        _send_communication_data(payload)
-
-
-def PRUserial485_read_curve_pointer():
-    """Leitura do ponteiro de curva (proximo ponto que sera executado)."""
-    # Payload: none
-    payload = _c.COMMAND_PRUserial485_read_curve_pointer
-    command, payload_recv = _send_communication_data(payload)
-    if command == ord(_c.COMMAND_PRUserial485_read_curve_pointer) and \
-       len(payload_recv) == 4:
-        return struct.unpack(">I", payload_recv)[0]
-    else:
-        return None
-
-
-def PRUserial485_sync_start(sync_mode, delay, sync_address=0x00):
-    """Inicia operação em modo síncrono."""
-    # Payload: SYNC_MODE (1 byte) + DELAY (4 bytes) + SYNC_ADDRESS (1 byte)
-    if (sync_mode in _c.AVAILABLE_SYNC_MODES) and (delay >= 0) and \
-       (sync_address >= 0):
-        payload = _c.COMMAND_PRUserial485_sync_start + \
-            struct.pack("B", sync_mode) + struct.pack(">I", delay) + \
-            struct.pack("B", sync_address)
-        _send_communication_data(payload)
-
-
-def PRUserial485_sync_stop():
-    """Finaliza a operação em modo síncrono."""
-    # Payload: none
-    payload = _c.COMMAND_PRUserial485_sync_stop
-    _send_communication_data(payload)
-
-
-def PRUserial485_sync_status():
-    """Verifica se sincronismo via PRU está aguardando pulso."""
-    # Payload: none
-    payload = _c.COMMAND_PRUserial485_sync_status
-    command, payload_recv = _send_communication_data(payload)
-    if command == ord(_c.COMMAND_PRUserial485_sync_status) and \
-       len(payload_recv) == 1:
-        if ord(payload_recv) == 0:
-            return False
-        else:
-            return True
-    else:
-        return None
-
-
-def PRUserial485_read_pulse_count_sync():
-    """Leitura do contador de pulsos - Sync."""
-    # Payload: none
-    payload = _c.COMMAND_PRUserial485_read_pulse_count_sync
-    command, payload_recv = _send_communication_data(payload)
-    if command == ord(_c.COMMAND_PRUserial485_read_pulse_count_sync) and \
-       len(payload_recv) == 4:
-        return struct.unpack(">I", payload_recv)[0]
-    else:
-        return None
-
-
-def PRUserial485_clear_pulse_count_sync():
-    # Payload: none
-    """Zera contador de pulsos - Sync."""
-    payload = _c.COMMAND_PRUserial485_clear_pulse_count_sync
-    command, payload_recv = _send_communication_data(payload)
-    if command == ord(_c.COMMAND_PRUserial485_clear_pulse_count_sync) and \
-       len(payload_recv) == 1:
-        return ord(payload_recv)
-    else:
-        return None
