@@ -16,60 +16,15 @@ Bytes:
 - 5.. : payload
 """
 
-# # It is a python module. It must not be run itself.
-# if (__name__ == "__main__"):
-#     exit()
-
 import socket
-import sys
 import struct
-import time
 from threading import Thread, Event
-from queue import Queue
+from queue import Queue, Empty
 from PRUserial485 import constants_PRUserial485_bridge as _c
-from PRUserial485.functions_PRUserial485_bridge import find_BBB_IP \
-    as _find_BBB_IP
-from siriuspy import util as _util
 
 
 SERVER_PORT_RW = 5000
 SERVER_PORT_GENERAL = 6000
-BBB_NAME = ''
-BBB_IP = ''
-
-
-# Queues
-general_queue = Queue()
-rw_queue = Queue()
-
-# Dictionary for answers
-answers = {}
-
-
-
-def set_beaglebone_ip(bbbname=None, ip=None):
-    """."""
-    global BBB_NAME
-    global BBB_IP
-    if ip is None:
-        if bbbname is None:
-            bbbname = socket.gethostname()
-
-        BBB_NAME = bbbname.replace('--', ':')
-        BBB_IP = _find_BBB_IP(BBB_NAME)
-        if BBB_IP == '':
-            sys.stdout.write(_util.get_timestamp() +
-                             ": Beaglebone IP not found. Please check BBB NAME\n")
-            sys.stdout.flush()
-            sys.exit()
-            sys.stdout.write(_util.get_timestamp() + ": '" + BBB_NAME + "'" +
-                             " will be connected on " + BBB_IP + "\n")
-            sys.stdout.flush()
-    else:
-        BBB_IP = ip
-
-
-
 
 
 class ConstReturn:
@@ -99,316 +54,347 @@ class ConstSyncMode:
     ALL = (MIGINT, MIGEND, RMPINT, RMPEND, BRDCST)
 
 
-def payload_length(payload):
-    """."""
-    return(struct.pack("B", payload[0]) +
-           struct.pack(">I", (len(payload)-1)) + payload[1:])
-
-
-def socket_communicate(conn_port, data_queue):
+class EthBrigdeClient:
     """."""
 
-    #Wait a valid IP address
-    while BBB_IP == "":
-        time.sleep(1)
+    def __init__(self, ip_address):
+        """."""
+        # Dictionary for COMM_RESPONSE
+        self._comm_response = {}
 
-    # Create socket connection
-    remote_socket = socket.socket(socket.AF_INET,
-                              socket.SOCK_STREAM)
-    remote_socket.connect((BBB_IP, conn_port))
-    remote_socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
-    remote_socket_connected = True
+        # Queues
+        self._queue_general = Queue()
+        self._queue_rw = Queue()
 
-    while True:
-        item = data_queue.get(block = True)
-        command = item[0]
-        sending_data = item[1]
-        report_event = item[2]
+        # IP
+        self._bbb_ip = self._check_ip_address(ip_address)
 
-        # Try reconnecting 3 times if remote socket is not available
-        for i in range(3):
-            if not remote_socket_connected:
-                try:
-                    remote_socket.connect((BBB_IP, conn_port))
-                    remote_socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
-                    remote_socket_connected = True
-                except:
-                    continue
+        self._thread_cmd_rw, self._thread_cmd_general = \
+            self._threads_create()
 
+        self._close = False
+
+    def open(self, baudrate=6, mode=b'M'):
+        """Procedimento de inicialização da PRU."""
+        if (mode in _c.AVAILABLE_MODES) and \
+                (baudrate in _c.AVAILABLE_BAUDRATES):
+            payload = _c.COMMAND_PRUserial485_open + \
+                mode + struct.pack(">I", baudrate)
+            command, payload_recv = self._send_communication_data(payload)
+
+            if command == ord(_c.COMMAND_PRUserial485_open) and \
+                    len(payload_recv) == 1:
+                return ord(payload_recv)
+            else:
+                return None
+
+    def close(self):
+        """Encerra a PRU."""
+        # Payload: none
+        payload = _c.COMMAND_PRUserial485_close
+        self._send_communication_data(payload)
+        self._close = True
+
+    def threads_start(self):
+        """."""
+        self._thread_cmd_rw.start()
+        self._thread_cmd_general.start()
+
+    def read(self):
+        """Recebe dados através da interface serial."""
+        # Payload: none
+        payload = _c.COMMAND_PRUserial485_read
+        command, payload_recv = self._send_communication_data(payload)
+        data = [chr(i) for i in payload_recv]
+        if command == ord(_c.COMMAND_PRUserial485_read):
+            return data
+        else:
+            return None
+
+    def write(self, data=None, timeout=0):
+        """Envia dados através da interface serial."""
+        # Payload: TIMEOUT (4 bytes) + DATA (len(DATA) bytes)
+        if data is None:
+            data = []
+        payload = _c.COMMAND_PRUserial485_write + struct.pack(">f", timeout)
+        payload += bytearray([ord(i) for i in data])
+        command, payload_recv = self._send_communication_data(payload)
+        if command == ord(_c.COMMAND_PRUserial485_write) and \
+                len(payload_recv) == 1:
+            return ord(payload_recv)
+        else:
+            return None
+
+    def version(self):
+        """Return version."""
+        # Payload: none
+        payload = _c.COMMAND_PRUserial485_version
+        command, payload_recv = self._send_communication_data(payload)
+        if command == ord(_c.COMMAND_PRUserial485_version) and payload_recv:
+            return payload_recv.decode()
+        else:
+            return None
+
+    def server_version(self):
+        """Return version."""
+        # Payload: none
+        payload = _c.COMMAND_PRUserial485_server_eth_version
+        command, payload_recv = self._send_communication_data(payload)
+        if command == ord(_c.COMMAND_PRUserial485_server_eth_version) and \
+                payload_recv:
+            return payload_recv.decode()
+        else:
+            return None
+
+    def address(self):
+        """Retorna endereco fisico da placa."""
+        # Payload: none
+        payload = _c.COMMAND_PRUserial485_address
+        command, payload_recv = self._send_communication_data(payload)
+        if command == ord(_c.COMMAND_PRUserial485_address) and \
+                len(payload_recv) == 1:
+            return ord(payload_recv)
+        else:
+            return None
+
+    # ---
+
+    def curve(self, curve1, curve2, curve3, curve4, block=0):
+        """Carregamento de curva."""
+        # Payload: BLOCK (1 byte) +
+        if len(curve1) == len(curve2) == len(curve3) == len(curve4) and \
+                block in _c.AVAILABLE_CURVE_BLOCKS:
+            payload = _c.COMMAND_PRUserial485_curve + struct.pack("B", block)
+            data1 = (struct.pack(">f", point) for point in curve1)
+            data2 = (struct.pack(">f", point) for point in curve2)
+            data3 = (struct.pack(">f", point) for point in curve3)
+            data4 = (struct.pack(">f", point) for point in curve4)
+            payload += \
+                b''.join(data1) + b''.join(data2) + \
+                b''.join(data3) + b''.join(data4)
+            command, payload_recv = self._send_communication_data(payload)
+            if command == ord(_c.COMMAND_PRUserial485_curve) and \
+                    len(payload_recv) == 1:
+                return ord(payload_recv)
+            else:
+                return None
+
+    def set_curve_block(self, block=0):
+        """Selecao de bloco de curva a ser realizado."""
+        # Payload: BLOCK (1 byte)
+        if block in _c.AVAILABLE_CURVE_BLOCKS:
+            payload = _c.COMMAND_PRUserial485_set_curve_block + \
+                struct.pack("B", block)
+            self._send_communication_data(payload)
+
+    def read_curve_block(self):
+        """Leitura do bloco de curva que sera realizado."""
+        # Payload: none
+        payload = _c.COMMAND_PRUserial485_read_curve_block
+        command, payload_recv = self._send_communication_data(payload)
+        if command == ord(_c.COMMAND_PRUserial485_read_curve_block) and \
+                len(payload_recv) == 1:
+            return ord(payload_recv)
+        else:
+            return None
+
+    def set_curve_pointer(self, pointer=0):
+        """Ajusta ponteiro para proximo ponto a ser executado (curva)."""
+        # Payload: POINTER (4 bytes)
+        if pointer > 0:
+            payload = _c.COMMAND_PRUserial485_set_curve_pointer + \
+                struct.pack(">I", pointer)
+            self._send_communication_data(payload)
+
+    def read_curve_pointer(self):
+        """Leitura do ponteiro de curva (proximo ponto que sera executado)."""
+        # Payload: none
+        payload = _c.COMMAND_PRUserial485_read_curve_pointer
+        command, payload_recv = self._send_communication_data(payload)
+        if command == ord(_c.COMMAND_PRUserial485_read_curve_pointer) and \
+                len(payload_recv) == 4:
+            return struct.unpack(">I", payload_recv)[0]
+        else:
+            return None
+
+    def sync_start(self, sync_mode, delay, sync_address=0x00):
+        """Inicia operação em modo síncrono."""
+        # Payload: SYNC_MODE (1 byte) + DELAY (4 bytes) + SYNC_ADDRESS (1 byte)
+        if (sync_mode in _c.AVAILABLE_SYNC_MODES) and (delay >= 0) and \
+                (sync_address >= 0):
+            payload = _c.COMMAND_PRUserial485_sync_start + \
+                struct.pack("B", sync_mode) + struct.pack(">I", delay) + \
+                struct.pack("B", sync_address)
+            self._send_communication_data(payload)
+
+    def sync_stop(self):
+        """Finaliza a operação em modo síncrono."""
+        # Payload: none
+        payload = _c.COMMAND_PRUserial485_sync_stop
+        self._send_communication_data(payload)
+
+    def sync_status(self):
+        """Verifica se sincronismo via PRU está aguardando pulso."""
+        # Payload: none
+        payload = _c.COMMAND_PRUserial485_sync_status
+        command, payload_recv = self._send_communication_data(payload)
+        if command == ord(_c.COMMAND_PRUserial485_sync_status) and \
+                len(payload_recv) == 1:
+            if ord(payload_recv) == 0:
+                return False
+            else:
+                return True
+        else:
+            return None
+
+    def read_pulse_count_sync(self):
+        """Leitura do contador de pulsos - Sync."""
+        # Payload: none
+        payload = _c.COMMAND_PRUserial485_read_pulse_count_sync
+        command, payload_recv = self._send_communication_data(payload)
+        if command == ord(_c.COMMAND_PRUserial485_read_pulse_count_sync) and \
+                len(payload_recv) == 4:
+            return struct.unpack(">I", payload_recv)[0]
+        else:
+            return None
+
+    def clear_pulse_count_sync(self):
+        # Payload: none
+        """Zera contador de pulsos - Sync."""
+        payload = _c.COMMAND_PRUserial485_clear_pulse_count_sync
+        command, payload_recv = self._send_communication_data(payload)
+        if command == ord(_c.COMMAND_PRUserial485_clear_pulse_count_sync) and \
+                len(payload_recv) == 1:
+            return ord(payload_recv)
+        else:
+            return None
+
+    # --- aux. methods ---
+
+    def _threads_create(self):
+        """."""
+        thread_cmd_rw = \
+            Thread(target=self._socket_communicate,
+                   args=(SERVER_PORT_RW, self._queue_rw))
+        thread_cmd_rw.setDaemon(True)
+        thread_cmd_general = \
+            Thread(target=self._socket_communicate,
+                   args=(SERVER_PORT_GENERAL, self._queue_general))
+        thread_cmd_general.setDaemon(True)
+
+        return thread_cmd_rw, thread_cmd_general
+
+    def _check_ip_address(self, ip_address):
+        """Define beaglebone IP address."""
+        if ip_address.startswith('10.128') and \
+                len(ip_address.split('.')) == 4:
+            return ip_address
+        else:
+            raise ValueError('Invalid IP')
+
+    @staticmethod
+    def _payload_length(payload):
+        """."""
+        return(struct.pack("B", payload[0]) +
+               struct.pack(">I", (len(payload)-1)) + payload[1:])
+
+    def _socket_communicate(self, conn_port, data_queue):
+        """."""
+        # Create socket connection
+        if self._bbb_ip is None:
+            raise ValueError('BeagleBone IP address undefined!')
+
+        remote_socket = socket.socket(socket.AF_INET,
+                                      socket.SOCK_STREAM)
+        remote_socket.connect((self._bbb_ip, conn_port))
+        remote_socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
+        remote_socket_connected = True
+
+        while not self._close:
+
+            # get queue item
+            try:
+                item = data_queue.get(block=True, timeout=1.0)
+            except Empty:
+                continue
+
+            # command = item[0]
+            sending_data = item[1]
+            report_event = item[2]
+
+            # Try reconnecting 3 times if remote socket is not available
+            for _ in range(3):
+                if not remote_socket_connected:
+                    try:
+                        remote_socket.connect((self._bbb_ip, conn_port))
+                        remote_socket.setsockopt(
+                            socket.SOL_TCP, socket.TCP_NODELAY, 1)
+                        remote_socket_connected = True
+                    except:
+                        continue
+
+                if remote_socket_connected:
+                    try:
+                        remote_socket.sendall(
+                            EthBrigdeClient._payload_length(sending_data))
+                        break
+                    except:
+                        remote_socket_connected = False
+                        remote_socket = socket.socket(socket.AF_INET,
+                                                      socket.SOCK_STREAM)
+
+            # Receive prefix: command (1 byte) + data_size (4 bytes)
+            answer = None
             if remote_socket_connected:
                 try:
-                    remote_socket.sendall(payload_length(sending_data))
-                    break
-                except:
-                    remote_socket_connected = False
-                    remote_socket = socket.socket(socket.AF_INET,
-                                              socket.SOCK_STREAM)
+                    answer = remote_socket.recv(5)
+                except ConnectionResetError:
+                    # This except might happen when server is suddenly stopped
+                    answer = []
 
-        # Receive prefix: command (1 byte) + data_size (4 bytes)
-        if remote_socket_connected:
-            try:
-                answer = remote_socket.recv(5)
-            except ConnectionResetError:
-                # This except might happen when server is suddenly stopped
-                answer = []
+            if answer:
+                command_recv = answer[0]
+                data_size = struct.unpack(">I", answer[1:])[0]
+            else:
+                command_recv = b''
+                data_size = 0
 
-        if answer:
-            command_recv = answer[0]
-            data_size = struct.unpack(">I", answer[1:])[0]
+            # Receive data/payload
+            payload = b''
+            if data_size:
+                try:
+                    for _ in range(int(data_size / 4096)):
+                        payload += remote_socket.recv(4096, socket.MSG_WAITALL)
+                    payload += remote_socket.recv(
+                        int(data_size % 4096), socket.MSG_WAITALL)
+                except ConnectionResetError:
+                    # This except might happen when server is suddenly stopped
+                    payload = b''
+
+            # Store answer and notify function
+            self._comm_response[report_event] = (command_recv, payload)
+            report_event.set()
+
+        # close socket
+        remote_socket.close()
+
+    def _send_communication_data(self, payload):
+        """."""
+        # Creates notification event
+        notification_event = Event()
+
+        # Add command into queue
+        if payload[0] == ord(_c.COMMAND_PRUserial485_write) or \
+                payload[0] == ord(_c.COMMAND_PRUserial485_read):
+            self._queue_rw.put([payload[0], payload, notification_event])
         else:
-            command_recv = b''
-            data_size = 0
+            self._queue_general.put([payload[0], payload, notification_event])
 
-        # Receive data/payload
-        payload = b''
-        if(data_size):
-            try:
-                for i in range(int(data_size / 4096)):
-                    payload += remote_socket.recv(4096, socket.MSG_WAITALL)
-                payload += remote_socket.recv(int(data_size % 4096), socket.MSG_WAITALL)
-            except ConnectionResetError:
-                # This except might happen when server is suddenly stopped
-                payload = b''
+        # Wait command complete. Get answer and delete event
+        notification_event.wait()
+        notification_event.clear()
+        command, payload_recv = \
+            self._comm_response.pop(notification_event, None)
+        del notification_event
 
-        # Store answer and notify function
-        answers[report_event] = (command_recv, payload)
-        report_event.set()
-
-
-
-def send_communication_data(payload):
-    # Creates notification event
-    notification_event = Event()
-
-    # Add command into queue
-    if payload[0] == ord(_c.COMMAND_PRUserial485_write) or payload[0] == ord(_c.COMMAND_PRUserial485_read):
-        rw_queue.put([payload[0], payload, notification_event])
-    else:
-        general_queue.put([payload[0], payload, notification_event])
-
-    # Wait command complete. Get answer and delete event
-    notification_event.wait()
-    notification_event.clear()
-    command, payload_recv = answers.pop(notification_event, None)
-    del notification_event
-
-    return command, payload_recv
-
-
-def PRUserial485_open(baudrate=6, mode=b'M'):
-    """Procedimento de inicialização da PRU."""
-    if (mode in _c.AVAILABLE_MODES) and \
-        (baudrate in _c.AVAILABLE_BAUDRATES):
-
-        payload = _c.COMMAND_PRUserial485_open + \
-        mode + struct.pack(">I", baudrate)
-
-        command, payload_recv = send_communication_data(payload)
-
-        if command == ord(_c.COMMAND_PRUserial485_open) and len(payload_recv) == 1:
-            return(ord(payload_recv))
-        else:
-            return None
-
-
-def PRUserial485_address():
-    """Retorna endereco fisico da placa."""
-    # Payload: none
-    payload = _c.COMMAND_PRUserial485_address
-    command, payload_recv = send_communication_data(payload)
-    if command == ord(_c.COMMAND_PRUserial485_address) and len(payload_recv) == 1:
-        return(ord(payload_recv))
-    else:
-        return None
-
-def PRUserial485_close():
-    """Encerra a PRU."""
-    # Payload: none
-    payload = _c.COMMAND_PRUserial485_close
-    command, payload_recv = send_communication_data(payload)
-    if command == ord(_c.COMMAND_PRUserial485_close):
-        return
-    else:
-        return None
-
-
-def PRUserial485_write(data=[], timeout=0):
-    """Envia dados através da interface serial."""
-    # Payload: TIMEOUT (4 bytes) + DATA (len(DATA) bytes)
-    payload = _c.COMMAND_PRUserial485_write + struct.pack(">f", timeout)
-    payload += bytearray([ord(i) for i in data])
-    command, payload_recv = send_communication_data(payload)
-    if command == ord(_c.COMMAND_PRUserial485_write) and len(payload_recv) == 1:
-        return(ord(payload_recv))
-    else:
-        return None
-
-
-def PRUserial485_read():
-    """Recebe dados através da interface serial."""
-    # Payload: none
-    payload = _c.COMMAND_PRUserial485_read
-    command, payload_recv = send_communication_data(payload)
-    data = [chr(i) for i in payload_recv]
-    if command == ord(_c.COMMAND_PRUserial485_read):
-        return data
-    else:
-        return None
-
-
-def PRUserial485_curve(curve1, curve2, curve3, curve4, block=0):
-    """Carregamento de curva."""
-    # Payload: BLOCK (1 byte) +
-    if len(curve1) == len(curve2) == len(curve3) == len(curve4) and block in \
-       _c.AVAILABLE_CURVE_BLOCKS:
-        payload = _c.COMMAND_PRUserial485_curve + struct.pack("B", block)
-        payload += b''.join((struct.pack(">f", point) for point in curve1)) + \
-                   b''.join((struct.pack(">f", point) for point in curve2)) + \
-                   b''.join((struct.pack(">f", point) for point in curve3)) + \
-                   b''.join((struct.pack(">f", point) for point in curve4))
-        command, payload_recv = send_communication_data(payload)
-        if command == ord(_c.COMMAND_PRUserial485_curve) and len(payload_recv) == 1:
-            return(ord(payload_recv))
-        else:
-            return None
-
-
-def PRUserial485_set_curve_block(block=0):
-    """Selecao de bloco de curva a ser realizado."""
-    # Payload: BLOCK (1 byte)
-    if block in _c.AVAILABLE_CURVE_BLOCKS:
-        payload = _c.COMMAND_PRUserial485_set_curve_block + \
-            struct.pack("B", block)
-        command, payload_recv = send_communication_data(payload)
-        if command == ord(_c.COMMAND_PRUserial485_set_curve_block) and len(payload_recv) == 0:
-            return
-        else:
-            return None
-
-
-def PRUserial485_read_curve_block():
-    """Leitura do bloco de curva que sera realizado."""
-    # Payload: none
-    payload = _c.COMMAND_PRUserial485_read_curve_block
-    command, payload_recv = send_communication_data(payload)
-    if command == ord(_c.COMMAND_PRUserial485_read_curve_block) and len(payload_recv) == 1:
-        return(ord(payload_recv))
-    else:
-        return None
-
-
-def PRUserial485_set_curve_pointer(pointer=0):
-    """Ajusta ponteiro para proximo ponto a ser executado (curva)."""
-    # Payload: POINTER (4 bytes)
-    if pointer > 0:
-        payload = _c.COMMAND_PRUserial485_set_curve_pointer + \
-            struct.pack(">I", pointer)
-        command, payload_recv = send_communication_data(payload)
-        if command == ord(_c.COMMAND_PRUserial485_set_curve_pointer) and len(payload_recv) == 0:
-            return
-        else:
-            return None
-
-
-def PRUserial485_read_curve_pointer():
-    """Leitura do ponteiro de curva (proximo ponto que sera executado)."""
-    # Payload: none
-    payload = _c.COMMAND_PRUserial485_read_curve_pointer
-    command, payload_recv = send_communication_data(payload)
-    if command == ord(_c.COMMAND_PRUserial485_read_curve_pointer) and len(payload_recv) == 4:
-        return(struct.unpack(">I",payload_recv)[0])
-    else:
-        return None
-
-
-def PRUserial485_sync_start(sync_mode, delay, sync_address=0x00):
-    """Inicia operação em modo síncrono."""
-    # Payload: SYNC_MODE (1 byte) + DELAY (4 bytes) + SYNC_ADDRESS (1 byte)
-    if (sync_mode in _c.AVAILABLE_SYNC_MODES) and (delay >= 0) and \
-       (sync_address >= 0):
-        payload = _c.COMMAND_PRUserial485_sync_start + \
-            struct.pack("B", sync_mode) + struct.pack(">I", delay) + \
-            struct.pack("B", sync_address)
-        command, payload_recv = send_communication_data(payload)
-        if command == ord(_c.COMMAND_PRUserial485_sync_start) and len(payload_recv) == 0:
-            return
-        else:
-            return None
-
-
-def PRUserial485_sync_stop():
-    """Finaliza a operação em modo síncrono."""
-    # Payload: none
-    payload = _c.COMMAND_PRUserial485_sync_stop
-    command, payload_recv = send_communication_data(payload)
-    if command == ord(_c.COMMAND_PRUserial485_sync_stop) and len(payload_recv) == 0:
-        return
-    else:
-        return None
-
-
-def PRUserial485_sync_status():
-    """Verifica se sincronismo via PRU está aguardando pulso."""
-    # Payload: none
-    payload = _c.COMMAND_PRUserial485_sync_status
-    command, payload_recv = send_communication_data(payload)
-    if command == ord(_c.COMMAND_PRUserial485_sync_status) and len(payload_recv) == 1:
-        if ord(payload_recv) == 0:
-            return False
-        else:
-            return True
-    else:
-        return None
-
-
-def PRUserial485_read_pulse_count_sync():
-    """Leitura do contador de pulsos - Sync."""
-    # Payload: none
-    payload = _c.COMMAND_PRUserial485_read_pulse_count_sync
-    command, payload_recv = send_communication_data(payload)
-    if command == ord(_c.COMMAND_PRUserial485_read_pulse_count_sync) and len(payload_recv) == 4:
-        return(struct.unpack(">I", payload_recv)[0])
-    else:
-        return None
-
-
-def PRUserial485_clear_pulse_count_sync():
-    # Payload: none
-    """Zera contador de pulsos - Sync."""
-    payload = _c.COMMAND_PRUserial485_clear_pulse_count_sync
-    command, payload_recv = send_communication_data(payload)
-    if command == ord(_c.COMMAND_PRUserial485_clear_pulse_count_sync) and len(payload_recv) == 1:
-        return(ord(payload_recv))
-    else:
-        return None
-
-
-def PRUserial485_version():
-    # Payload: none
-    """Only for remote library"""
-    payload = _c.COMMAND_PRUserial485_version
-    command, payload_recv = send_communication_data(payload)
-    if command == ord(_c.COMMAND_PRUserial485_version) and len(payload_recv):
-        return(payload_recv.decode())
-    else:
-        return None
-
-def PRUserial485_server_version():
-    # Payload: none
-    """Only for remote library"""
-    payload = _c.COMMAND_PRUserial485_server_eth_version
-    command, payload_recv = send_communication_data(payload)
-    if command == ord(_c.COMMAND_PRUserial485_server_eth_version) and len(payload_recv):
-        return(payload_recv.decode())
-    else:
-        return None
-
-
-
-general_command_thread = Thread(target = socket_communicate, args = (SERVER_PORT_GENERAL, general_queue))
-general_command_thread.setDaemon(True)
-general_command_thread.start()
-
-rw_command_thread = Thread(target = socket_communicate, args = (SERVER_PORT_RW, rw_queue))
-rw_command_thread.setDaemon(True)
-rw_command_thread.start()
+        return command, payload_recv
