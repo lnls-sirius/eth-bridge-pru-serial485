@@ -7,7 +7,7 @@ SERVER SIDE - BEAGLEBONE BLACK SCRIPT
 Author: Patricia Nallin
 
 Release:
-14/jan/2020
+21/jan/2020
 """
 
 RELEASE_DATE = "21/jan/2020"
