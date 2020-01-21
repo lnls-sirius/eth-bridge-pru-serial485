@@ -85,7 +85,7 @@ def processThread_general():
             curves = []
             for curve in range (4):
                 curves.append([struct.unpack(">f", item[1][4*i + 1:4*i+4 + 1])[0] for i in range((curve*curve_size), (curve+1)*curve_size)])
-            res = _lib.PRUserial485_curve(curves[0], curves[1], curves[2], curves[3], block)
+            res = _lib.PRUserial485_curve(block, [curves[0], curves[1], curves[2], curves[3]])
             answer = (ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_set_curve_block):
