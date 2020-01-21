@@ -7,10 +7,10 @@ SERVER SIDE - BEAGLEBONE BLACK SCRIPT
 Author: Patricia Nallin
 
 Release:
-21/aug/2019
+21/jan/2020
 """
 
-RELEASE_DATE = "21/aug/2019"
+RELEASE_DATE = "21/jan/2020"
 
 import socket
 import time
@@ -26,6 +26,7 @@ from constants_PRUserial485_bridge import *
 from functions_PRUserial485_bridge import *
 from queue import Queue
 import PRUserial485 as _lib
+#import prucon as _lib
 
 # TCP port for PRUserial485 bridge
 SERVER_PORT_RW = 5000
@@ -66,7 +67,7 @@ def processThread_general():
         # Verification and implementation
         if (item[0] == COMMAND_PRUserial485_open):
             baudrate = struct.unpack(">I", item[1][1:])[0]
-            mode = item[1][0]
+            mode = item[1][:1]
             res = _lib.PRUserial485_open(baudrate,mode)
             answer = (ANSWER_Ok + struct.pack("B", res))
 
@@ -84,7 +85,7 @@ def processThread_general():
             curves = []
             for curve in range (4):
                 curves.append([struct.unpack(">f", item[1][4*i + 1:4*i+4 + 1])[0] for i in range((curve*curve_size), (curve+1)*curve_size)])
-            res = _lib.PRUserial485_curve(curves[0], curves[1], curves[2], curves[3], block)
+            res = _lib.PRUserial485_curve(block, [curves[0], curves[1], curves[2], curves[3]])
             answer = (ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_set_curve_block):
@@ -131,7 +132,14 @@ def processThread_general():
             answer = (ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_version):
-            answer = (ANSWER_Ok + _lib.__version__.encode())
+            try:
+                libversion = _lib.__version__()
+            except:
+                try:
+                    libversion = _lib.__version__()
+                except:
+                    pass
+            answer = (ANSWER_Ok + libversion.encode())
 
         elif (item[0] == COMMAND_PRUserial485_server_eth_version):
             with open(version_file_path, 'r') as _f:
@@ -156,13 +164,15 @@ def processThread_rw():
         # Verification and implementation
         if (item[0] == COMMAND_PRUserial485_write):
             timeout = struct.unpack(">f", item[1][:4])[0]
-            data = [chr(i) for i in item[1][4:]]
+#            data = [chr(i) for i in item[1][4:]]
+            data = item[1][4:]
             res = _lib.PRUserial485_write(data, timeout)
             read_data[client] = _lib.PRUserial485_read()
             answer = (ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_read):
-            res = bytearray([ord(i) for i in read_data[client]])
+#            res = bytearray([ord(i) for i in read_data[client]])
+            res = read_data[client]
             answer = (ANSWER_Ok + res)
 
         answer = item[0] + answer[1:]
