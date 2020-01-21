@@ -10,7 +10,7 @@ Release:
 14/jan/2020
 """
 
-RELEASE_DATE = "14/jan/2020"
+RELEASE_DATE = "21/jan/2020"
 
 import socket
 import time
