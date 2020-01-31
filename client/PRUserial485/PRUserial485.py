@@ -57,14 +57,17 @@ class ConstSyncMode:
 class EthBrigdeClient:
     """."""
 
-    def __init__(self, ip_address):
+    def __init__(self, ip_address, use_general=True):
         """."""
         # Dictionary for COMM_RESPONSE
         self._comm_response = {}
 
+        self._use_general = use_general
+
         # Queues
-        self._queue_general = Queue()
         self._queue_rw = Queue()
+        if self._use_general:
+            self._queue_general = Queue()
 
         # IP
         self._bbb_ip = self._check_ip_address(ip_address)
@@ -98,7 +101,8 @@ class EthBrigdeClient:
     def threads_start(self):
         """."""
         self._thread_cmd_rw.start()
-        self._thread_cmd_general.start()
+        if self._use_general:
+            self._thread_cmd_general.start()
 
     def read(self):
         """Recebe dados através da interface serial."""
@@ -277,10 +281,14 @@ class EthBrigdeClient:
             Thread(target=self._socket_communicate,
                    args=(SERVER_PORT_RW, self._queue_rw))
         thread_cmd_rw.setDaemon(True)
-        thread_cmd_general = \
-            Thread(target=self._socket_communicate,
-                   args=(SERVER_PORT_GENERAL, self._queue_general))
-        thread_cmd_general.setDaemon(True)
+        if self._use_general:
+            thread_cmd_general = \
+                Thread(
+                    target=self._socket_communicate,
+                    args=(SERVER_PORT_GENERAL, self._queue_general))
+            thread_cmd_general.setDaemon(True)
+        else:
+            thread_cmd_general = None
 
         return thread_cmd_rw, thread_cmd_general
 
