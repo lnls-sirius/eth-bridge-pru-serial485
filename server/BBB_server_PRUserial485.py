@@ -7,10 +7,10 @@ SERVER SIDE - BEAGLEBONE BLACK SCRIPT
 Author: Patricia Nallin
 
 Release:
-21/jan/2020
+09/june/2020
 """
 
-RELEASE_DATE = "21/jan/2020"
+RELEASE_DATE = "09/june/2020"
 
 import socket
 import time
@@ -30,16 +30,17 @@ from functions_PRUserial485_bridge import *
 from queue import Queue
 import PRUserial485 as _lib
 
-#import prucon as _lib
 
-
-# Logging
+# Logging - Files available for Apache webserver
 LOG_SIZE = 100 # kB
+BACKUP_FILES = 5
 LOG_FILENAME = '/var/www/html/logs/eth-bridge-pru-serial485_commands.log'
+
+
 eth_bridge_log = logging.getLogger('eth-bridge-pru-serial485_commands')
 eth_bridge_log.setLevel(logging.INFO)
 
-handler = RotatingFileHandler(LOG_FILENAME, mode='a', maxBytes=LOG_SIZE*1024, backupCount=5)
+handler = RotatingFileHandler(LOG_FILENAME, mode='a', maxBytes=LOG_SIZE*1024, backupCount=BACKUP_FILES)
 handler.setFormatter(logging.Formatter('%(asctime)s | %(levelname)s | %(message)s'))
 
 eth_bridge_log.addHandler(handler)
@@ -51,7 +52,7 @@ SERVER_PORT_GENERAL = 6000
 DAEMON_PORT = 5500
 
 # Multi-client variables
-global connected_clients, read_data, tini
+global connected_clients, read_data
 connected_clients = {SERVER_PORT_RW:[], SERVER_PORT_GENERAL:[]}
 read_data = {}
 
@@ -170,7 +171,7 @@ def processThread_general():
 
 
 def processThread_rw():
-    global read_data, tini
+    global read_data
     while (True):
         # Get next operation
         item = queue_rw.get(block = True)
@@ -209,13 +210,10 @@ def processThread_rw():
         
         if (logging_enable):
             eth_bridge_log.info("CLIENT: {}- COMMAND: {}\t- INCOMING: {} - OUTCOMING: {}".format(client.getpeername(), PRUserial485_CommandName[item[0]], data, answer[1:]))
-        # tfim=time.time()
-        # delta_ms = (tfim-tini)*1000
-        # sys.stdout.write("{:.2f}\n".format(delta_ms))
-        # sys.stdout.flush()
+
 
 def clientThread(client_connection, client_info, conn_port):
-    global connected_clients, read_data, tini
+    global connected_clients, read_data
     connected_clients[conn_port].append(client_info)
     read_data[client_connection] = []
 
@@ -232,7 +230,6 @@ def clientThread(client_connection, client_info, conn_port):
             for i in range(int(data_size / 4096)):
                 message += client_connection.recv(4096, socket.MSG_WAITALL)
             message += client_connection.recv(int(data_size % 4096), socket.MSG_WAITALL)
-            tini = time.time()
 
             # Put operation in Queue
             if len(message) == data_size:
@@ -293,14 +290,10 @@ def daemon_server(daemon_port):
             daemon_socket.bind(("", DAEMON_PORT))
             daemon_socket.listen(1)
             sys.stdout.write(time_string() + "TCP/IP daemon server on port {} started\n".format(DAEMON_PORT))
-            sys.stdout.flush()
-
-            while(True):
-                connection, client_info = daemon_socket.accept()
-
-        except Exception:
-            daemon_socket.close()
-            sys.stdout.write(time_string() + "Connection problem on daemon port {}. Error message:\n\n".format(DAEMON_PORT))
+            sys.stdout.flush()        # tfim=time.time()
+        # delta_ms = (tfim-tini)*1000
+        # sys.stdout.write("{:.2f}\n".format(delta_ms))
+        # sys.stdout.flush()on daemon port {}. Error message:\n\n".format(DAEMON_PORT))
             traceback.print_exc(file = sys.stdout)
             sys.stdout.write("\n")
             sys.stdout.flush()
@@ -314,6 +307,7 @@ if (__name__ == '__main__'):
 
     sys.stdout.write("----- TCP/IP SERVER FOR PRUSERIAL485 -----\n")
     sys.stdout.write("----- Release date: {} -----\n".format(RELEASE_DATE))
+    sys.stdout.write("----- Logging write/read operations at {} -----\n".format(LOG_FILENAME))
     sys.stdout.write(time_string() + "Initialization.\n")
     sys.stdout.flush()
 
