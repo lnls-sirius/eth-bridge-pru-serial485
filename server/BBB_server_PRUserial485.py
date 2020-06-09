@@ -15,7 +15,6 @@ RELEASE_DATE = "09/june/2020"
 import socket
 import time
 import sys
-import os
 import struct
 import threading
 import traceback
@@ -290,16 +289,18 @@ def daemon_server(daemon_port):
             daemon_socket.bind(("", DAEMON_PORT))
             daemon_socket.listen(1)
             sys.stdout.write(time_string() + "TCP/IP daemon server on port {} started\n".format(DAEMON_PORT))
-            sys.stdout.flush()        # tfim=time.time()
-        # delta_ms = (tfim-tini)*1000
-        # sys.stdout.write("{:.2f}\n".format(delta_ms))
-        # sys.stdout.flush()on daemon port {}. Error message:\n\n".format(DAEMON_PORT))
+            sys.stdout.flush()        
+
+            while(True):
+                connection, client_info = daemon_socket.accept()
+
+        except Exception:
+            daemon_socket.close()
+            sys.stdout.write(time_string() + "Connection problem on daemon port {}. Error message:\n\n".format(DAEMON_PORT))  
             traceback.print_exc(file = sys.stdout)
             sys.stdout.write("\n")
             sys.stdout.flush()
             time.sleep(1)
-
-
 
 
 
