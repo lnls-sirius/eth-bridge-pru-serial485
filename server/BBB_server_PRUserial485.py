@@ -15,18 +15,35 @@ RELEASE_DATE = "21/jan/2020"
 import socket
 import time
 import sys
+import os
 import struct
 import threading
 import traceback
 import os.path
 import subprocess
 import datetime
+import logging
+from logging.handlers import RotatingFileHandler
 sys.path.append(os.path.abspath(os.path.join(os.path.pardir,'common')))
 from constants_PRUserial485_bridge import *
 from functions_PRUserial485_bridge import *
 from queue import Queue
 import PRUserial485 as _lib
+
 #import prucon as _lib
+
+
+# Logging
+LOG_SIZE = 100 # kB
+LOG_FILENAME = '/var/www/html/logs/eth-bridge-pru-serial485_commands.log'
+eth_bridge_log = logging.getLogger('eth-bridge-pru-serial485_commands')
+eth_bridge_log.setLevel(logging.INFO)
+
+handler = RotatingFileHandler(LOG_FILENAME, mode='a', maxBytes=LOG_SIZE*1024, backupCount=5)
+handler.setFormatter(logging.Formatter('%(asctime)s | %(levelname)s | %(message)s'))
+
+eth_bridge_log.addHandler(handler)
+
 
 # TCP port for PRUserial485 bridge
 SERVER_PORT_RW = 5000
@@ -34,7 +51,7 @@ SERVER_PORT_GENERAL = 6000
 DAEMON_PORT = 5500
 
 # Multi-client variables
-global connected_clients, read_data
+global connected_clients, read_data, tini
 connected_clients = {SERVER_PORT_RW:[], SERVER_PORT_GENERAL:[]}
 read_data = {}
 
@@ -153,7 +170,7 @@ def processThread_general():
 
 
 def processThread_rw():
-    global read_data
+    global read_data, tini
     while (True):
         # Get next operation
         item = queue_rw.get(block = True)
@@ -164,23 +181,41 @@ def processThread_rw():
         # Verification and implementation
         if (item[0] == COMMAND_PRUserial485_write):
             timeout = struct.unpack(">f", item[1][:4])[0]
-#            data = [chr(i) for i in item[1][4:]]
             data = item[1][4:]
             res = _lib.PRUserial485_write(data, timeout)
             read_data[client] = _lib.PRUserial485_read()
             answer = (ANSWER_Ok + struct.pack("B", res))
 
+            # Reading Group will not be logged
+            if data[1] == 0x12: 
+                logging_enable = False
+            else:
+                logging_enable = True
+
+
         elif (item[0] == COMMAND_PRUserial485_read):
-#            res = bytearray([ord(i) for i in read_data[client]])
             res = read_data[client]
+            data = ''
             answer = (ANSWER_Ok + res)
+
+            # Reading Group will not be logged
+            if res[1] == 0x13: 
+                logging_enable = False
+            else:
+                logging_enable = True
 
         answer = item[0] + answer[1:]
         client.sendall(payload_length(answer))
-
+        
+        if (logging_enable):
+            eth_bridge_log.info("CLIENT: {}- COMMAND: {}\t- INCOMING: {} - OUTCOMING: {}".format(client.getpeername(), PRUserial485_CommandName[item[0]], data, answer[1:]))
+        # tfim=time.time()
+        # delta_ms = (tfim-tini)*1000
+        # sys.stdout.write("{:.2f}\n".format(delta_ms))
+        # sys.stdout.flush()
 
 def clientThread(client_connection, client_info, conn_port):
-    global connected_clients, read_data
+    global connected_clients, read_data, tini
     connected_clients[conn_port].append(client_info)
     read_data[client_connection] = []
 
@@ -197,6 +232,7 @@ def clientThread(client_connection, client_info, conn_port):
             for i in range(int(data_size / 4096)):
                 message += client_connection.recv(4096, socket.MSG_WAITALL)
             message += client_connection.recv(int(data_size % 4096), socket.MSG_WAITALL)
+            tini = time.time()
 
             # Put operation in Queue
             if len(message) == data_size:
