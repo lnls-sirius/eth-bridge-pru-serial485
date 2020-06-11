@@ -31,9 +31,9 @@ import PRUserial485 as _lib
 
 
 # Logging - Files available for Apache webserver
-LOG_SIZE = 100 # kB
+LOG_SIZE = 500 # kB
 BACKUP_FILES = 5
-LOG_FILENAME = '/var/www/html/logs/eth-bridge-pru-serial485_commands.log'
+LOG_FILENAME = '/var/www/html/logs/eth-bridge-pru-serial485_commands.txt'
 
 
 eth_bridge_log = logging.getLogger('eth-bridge-pru-serial485_commands')
@@ -186,29 +186,18 @@ def processThread_rw():
             read_data[client] = _lib.PRUserial485_read()
             answer = (ANSWER_Ok + struct.pack("B", res))
 
-            # Reading Group will not be logged
-            if data[1] == 0x12: 
-                logging_enable = False
-            else:
-                logging_enable = True
-
-
         elif (item[0] == COMMAND_PRUserial485_read):
             res = read_data[client]
             data = ''
             answer = (ANSWER_Ok + res)
 
-            # Reading Group will not be logged
-            if res[1] == 0x13: 
-                logging_enable = False
-            else:
-                logging_enable = True
-
         answer = item[0] + answer[1:]
         client.sendall(payload_length(answer))
         
-        if (logging_enable):
-            eth_bridge_log.info("CLIENT: {}- COMMAND: {}\t- INCOMING: {} - OUTCOMING: {}".format(client.getpeername(), PRUserial485_CommandName[item[0]], data, answer[1:]))
+        # LOGGING QUEUE = [CLIENT_INFO, COMMAND_CODE, INPUT_DATA, OUTPUT_DATA]
+        queue_logging.put([client, item[0], data, answer[1:]])
+#            eth_bridge_log.info("CLIENT: {}- COMMAND: {}\t- INCOMING: {} - OUTCOMING: {}".format(client.getpeername(), PRUserial485_CommandName[item[0]], data, answer[1:]))
+
 
 
 def clientThread(client_connection, client_info, conn_port):
@@ -314,6 +303,7 @@ if (__name__ == '__main__'):
 
     queue_general = Queue()
     queue_rw = Queue()
+    queue_logging = Queue()
 
     # Create and start process threads
     process_general = threading.Thread(target = processThread_general)
@@ -339,4 +329,14 @@ if (__name__ == '__main__'):
     daemon_thread.start()
 
     while (True):
-        time.sleep(10)
+        # LOGGING QUEUE = [CLIENT_INFO, COMMAND_CODE, INPUT_DATA, OUTPUT_DATA]
+        info = queue_logging.get(block = True)
+
+        # Do not log commands 0x12 and 0x13 (request and reply BSMP commands for reading variable groups)
+        if (info[1] == COMMAND_PRUserial485_write and info[2].startswith(b'\x12', 1)):
+            pass
+        elif (info[1] == COMMAND_PRUserial485_read and info[3].startswith(b'\x00\x13')):
+            pass
+        else:
+            eth_bridge_log.info("CLIENT: {}- COMMAND: {}\t- INCOMING: {} - OUTCOMING: {}".format(info[0].getpeername(), PRUserial485_CommandName[info[1]], info[2], info[3]))
+
