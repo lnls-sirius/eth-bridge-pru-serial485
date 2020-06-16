@@ -15,6 +15,7 @@ RELEASE_DATE = "21/jan/2020"
 import socket
 import time
 import sys
+import os
 import struct
 import threading
 import traceback
@@ -34,7 +35,7 @@ SERVER_PORT_GENERAL = 6000
 DAEMON_PORT = 5500
 
 # Multi-client variables
-global connected_clients, read_data
+global connected_clients, read_data, tini
 connected_clients = {SERVER_PORT_RW:[], SERVER_PORT_GENERAL:[]}
 read_data = {}
 
@@ -153,34 +154,40 @@ def processThread_general():
 
 
 def processThread_rw():
-    global read_data
+    global read_data, tini
     while (True):
         # Get next operation
         item = queue_rw.get(block = True)
         item[0] = struct.pack("B",item[0])
         client = item[2]
+        tinicio = float(item[3])
         answer = b''
 
         # Verification and implementation
         if (item[0] == COMMAND_PRUserial485_write):
             timeout = struct.unpack(">f", item[1][:4])[0]
-#            data = [chr(i) for i in item[1][4:]]
+            tini += timeout/1000.0
             data = item[1][4:]
             res = _lib.PRUserial485_write(data, timeout)
             read_data[client] = _lib.PRUserial485_read()
             answer = (ANSWER_Ok + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_read):
-#            res = bytearray([ord(i) for i in read_data[client]])
             res = read_data[client]
             answer = (ANSWER_Ok + res)
 
         answer = item[0] + answer[1:]
+        tfim=time.time()
         client.sendall(payload_length(answer))
-
+        tfim2=time.time()
+        delta_ms = (tfim-tinicio)*1000
+        delta_ms2 = (tfim2-tinicio)*1000
+#        os.sched_yield()
+        sys.stdout.write("{:.2f};{:.2f}\n".format(delta_ms, delta_ms2))
+        sys.stdout.flush()
 
 def clientThread(client_connection, client_info, conn_port):
-    global connected_clients, read_data
+    global connected_clients, read_data, tini
     connected_clients[conn_port].append(client_info)
     read_data[client_connection] = []
 
@@ -197,11 +204,12 @@ def clientThread(client_connection, client_info, conn_port):
             for i in range(int(data_size / 4096)):
                 message += client_connection.recv(4096, socket.MSG_WAITALL)
             message += client_connection.recv(int(data_size % 4096), socket.MSG_WAITALL)
+            tini = time.time()
 
             # Put operation in Queue
             if len(message) == data_size:
                 if command == ord(COMMAND_PRUserial485_write) or command == ord(COMMAND_PRUserial485_read):
-                    queue_rw.put([command, message, client_connection])
+                    queue_rw.put([command, message, client_connection, tini])
                 else:
                     queue_general.put([command, message, client_connection])
 
@@ -309,3 +317,7 @@ if (__name__ == '__main__'):
 
     while (True):
         time.sleep(10)
+
+
+
+
