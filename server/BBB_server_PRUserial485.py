@@ -7,10 +7,10 @@ SERVER SIDE - BEAGLEBONE BLACK SCRIPT
 Author: Patricia Nallin
 
 Release:
-09/june/2020
+07/july/2020
 """
 
-RELEASE_DATE = "09/june/2020"
+RELEASE_DATE = "07/july/2020"
 
 import socket
 import time
