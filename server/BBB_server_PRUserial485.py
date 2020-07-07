@@ -339,7 +339,9 @@ if (__name__ == '__main__'):
         info = queue_logging.get(block = True)
 
         # Do not log commands 0x12 and 0x13 (request and reply BSMP commands for reading variable groups)
-        if (info[1] == COMMAND_PRUserial485_write and info[2].startswith(b'\x12', 1)):
+        if (info[1] == COMMAND_PRUserial485_write_then_read):
+            pass
+        elif (info[1] == COMMAND_PRUserial485_write and info[2].startswith(b'\x12', 1)):
             pass
         elif (info[1] == COMMAND_PRUserial485_read and info[3].startswith(b'\x00\x13')):
             pass
