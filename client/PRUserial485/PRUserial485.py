@@ -407,7 +407,8 @@ class EthBrigdeClient:
 
         # Add command into queue
         if payload[0] == ord(_c.COMMAND_PRUserial485_write) or \
-                payload[0] == ord(_c.COMMAND_PRUserial485_read):
+                payload[0] == ord(_c.COMMAND_PRUserial485_read) or \
+                    payload[0] == ord(_c.COMMAND_PRUserial485_write_then_read):
             self._queue_rw.put([payload[0], payload, notification_event])
         else:
             self._queue_general.put([payload[0], payload, notification_event])
