@@ -129,6 +129,20 @@ class EthBrigdeClient:
         else:
             return None
 
+    def write_then_read(self, data=None, timeout=0):
+        """Envia dados através da interface serial e ja recebe a resposta."""
+        # Payload: TIMEOUT (4 bytes) + DATA (len(DATA) bytes)
+        if data is None:
+            data = []
+        payload = _c.COMMAND_PRUserial485_write_then_read + struct.pack(">f", timeout)
+        payload += bytearray([ord(i) for i in data])
+        command, payload_recv = self._send_communication_data(payload)
+        data = [chr(i) for i in payload_recv]
+        if command == ord(_c.COMMAND_PRUserial485_write_then_read):
+            return data
+        else:
+            return None
+
     def version(self):
         """Return version."""
         # Payload: none
