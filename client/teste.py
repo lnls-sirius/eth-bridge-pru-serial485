@@ -7,6 +7,18 @@ import PRUserial485
 import sys
 import time
 
+def includeChecksum(string):
+    counter = 0
+    i = 0
+    while (i < len(string)):
+        counter += ord(string[i])
+        i += 1
+    counter = (counter & 0xFF)
+    counter = (256 - counter) & 0xFF
+    return(string + [chr(counter)])
+
+
+
 fbp_write_4setpoints = ['\x01','\x50','\x00','\x11','\x11']+['\x00']*16+['\x8d']
 fbp_read_var_group = ["\x01", "\x12", "\x00", "\x01", "\x03", "\xe9"]
 
@@ -32,15 +44,3 @@ tf = time.time()
 
 sys.stdout.write("TEMPO TOTAL {:.1f} SEG\n".format(tf-t0))
 sys.stdout.flush()
-
-
-
-def includeChecksum(string):
-    counter = 0
-    i = 0
-    while (i < len(string)):
-        counter += ord(string[i])
-        i += 1
-    counter = (counter & 0xFF)
-    counter = (256 - counter) & 0xFF
-    return(string + [chr(counter)])
