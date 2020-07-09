@@ -163,9 +163,9 @@ def processThread_rw():
 
         # Verification and implementation
         if (item[0] == COMMAND_PRUserial485_write):
-            timeout = struct.unpack(">f", item[1][:4])[0]
-#            data = [chr(i) for i in item[1][4:]]
             data = item[1][4:]
+            timeout = struct.unpack(">f", data)[0]
+#            data = [chr(i) for i in item[1][4:]]
             res = _lib.PRUserial485_write(data, timeout)
             read_data[client] = _lib.PRUserial485_read()
             answer = (ANSWER_Ok + struct.pack("B", res))
@@ -176,8 +176,8 @@ def processThread_rw():
             answer = (ANSWER_Ok + res)
 
         elif (item[0] == COMMAND_PRUserial485_write_then_read):
-            timeout = struct.unpack(">f", item[1][:4])[0]
             data = item[1][4:]
+            timeout = struct.unpack(">f", data)[0]
             res = _lib.PRUserial485_write(data, timeout)
             answer = (ANSWER_Ok + _lib.PRUserial485_read())
 
@@ -189,6 +189,11 @@ def clientThread(client_connection, client_info, conn_port):
     global connected_clients, read_data
     connected_clients[conn_port].append(client_info)
     read_data[client_connection] = []
+
+    rw_cmd = {
+        ord(COMMAND_PRUserial485_write),
+        ord(COMMAND_PRUserial485_read),
+        ord(COMMAND_PRUserial485_write_then_read)}
 
     while (True):
         # Message header - Operation command (1 byte) + data size (4 bytes)
@@ -206,7 +211,7 @@ def clientThread(client_connection, client_info, conn_port):
 
             # Put operation in Queue
             if len(message) == data_size:
-                if command == ord(COMMAND_PRUserial485_write) or command == ord(COMMAND_PRUserial485_read) or command == ord(COMMAND_PRUserial485_write_then_read):
+                if command in rw_cmd:
                     queue_rw.put([command, message, client_connection])
                 else:
                     queue_general.put([command, message, client_connection])
