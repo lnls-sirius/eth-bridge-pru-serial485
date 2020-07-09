@@ -7,10 +7,10 @@ SERVER SIDE - BEAGLEBONE BLACK SCRIPT
 Author: Patricia Nallin
 
 Release:
-21/jan/2020
+07/july/2020
 """
 
-RELEASE_DATE = "21/jan/2020"
+RELEASE_DATE = "07/july/2020"
 
 import socket
 import time
@@ -175,6 +175,12 @@ def processThread_rw():
             res = read_data[client]
             answer = (ANSWER_Ok + res)
 
+        elif (item[0] == COMMAND_PRUserial485_write_then_read):
+            timeout = struct.unpack(">f", item[1][:4])[0]
+            data = item[1][4:]
+            res = _lib.PRUserial485_write(data, timeout)
+            answer = (ANSWER_Ok + _lib.PRUserial485_read())
+
         answer = item[0] + answer[1:]
         client.sendall(payload_length(answer))
 
@@ -200,7 +206,7 @@ def clientThread(client_connection, client_info, conn_port):
 
             # Put operation in Queue
             if len(message) == data_size:
-                if command == ord(COMMAND_PRUserial485_write) or command == ord(COMMAND_PRUserial485_read):
+                if command == ord(COMMAND_PRUserial485_write) or command == ord(COMMAND_PRUserial485_read) or command == ord(COMMAND_PRUserial485_write_then_read):
                     queue_rw.put([command, message, client_connection])
                 else:
                     queue_general.put([command, message, client_connection])

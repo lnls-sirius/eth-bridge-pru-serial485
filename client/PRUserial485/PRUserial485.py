@@ -8,7 +8,7 @@ CLIENT SIDE - PRUserial485 via Ethernet bridge
 Author: Patricia Nallin
 
 Release Date:
-06/aug/2019
+07/july/2020
 
 Bytes:
 - 0: command
@@ -126,6 +126,20 @@ class EthBrigdeClient:
         if command == ord(_c.COMMAND_PRUserial485_write) and \
                 len(payload_recv) == 1:
             return ord(payload_recv)
+        else:
+            return None
+
+    def write_then_read(self, data=None, timeout=0):
+        """Envia dados através da interface serial e ja recebe a resposta."""
+        # Payload: TIMEOUT (4 bytes) + DATA (len(DATA) bytes)
+        if data is None:
+            data = []
+        payload = _c.COMMAND_PRUserial485_write_then_read + struct.pack(">f", timeout)
+        payload += bytearray([ord(i) for i in data])
+        command, payload_recv = self._send_communication_data(payload)
+        data = [chr(i) for i in payload_recv]
+        if command == ord(_c.COMMAND_PRUserial485_write_then_read):
+            return data
         else:
             return None
 
@@ -393,7 +407,8 @@ class EthBrigdeClient:
 
         # Add command into queue
         if payload[0] == ord(_c.COMMAND_PRUserial485_write) or \
-                payload[0] == ord(_c.COMMAND_PRUserial485_read):
+                payload[0] == ord(_c.COMMAND_PRUserial485_read) or \
+                payload[0] == ord(_c.COMMAND_PRUserial485_write_then_read):
             self._queue_rw.put([payload[0], payload, notification_event])
         else:
             self._queue_general.put([payload[0], payload, notification_event])
