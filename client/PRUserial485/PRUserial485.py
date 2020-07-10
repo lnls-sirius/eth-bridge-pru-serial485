@@ -70,7 +70,7 @@ class EthBrigdeClient:
             self._queue_general = Queue()
 
         # IP
-        self._bbb_ip = self._check_ip_address(ip_address)
+        self._bbb_ip = ip_address
 
         self._thread_cmd_rw, self._thread_cmd_general = \
             self._threads_create()
@@ -357,8 +357,9 @@ class EthBrigdeClient:
 
                 if remote_socket_connected:
                     try:
-                        remote_socket.sendall(
-                            EthBrigdeClient._payload_length(sending_data))
+                        remote_socket.sendall(sending_data)
+                        #remote_socket.sendall(
+                        #    EthBrigdeClient._payload_length(sending_data))
                         break
                     except:
                         remote_socket_connected = False
@@ -367,22 +368,32 @@ class EthBrigdeClient:
 
             # Receive prefix: command (1 byte) + data_size (4 bytes)
             answer = None
+            
             if remote_socket_connected:
                 try:
                     answer = remote_socket.recv(5)
                 except ConnectionResetError:
                     # This except might happen when server is suddenly stopped
                     answer = []
-
+            
             if answer:
                 command_recv = answer[0]
                 data_size = struct.unpack(">I", answer[1:])[0]
             else:
                 command_recv = b''
                 data_size = 0
+            
 
             # Receive data/payload
             payload = b''
+            '''
+            remote_socket.settimeout(0.001)
+            try:
+                payload += remote_socket.recv(1024)
+            except:
+                pass
+            remote_socket.settimeout(None)
+            '''
             if data_size:
                 try:
                     for _ in range(int(data_size / 4096)):
@@ -392,9 +403,10 @@ class EthBrigdeClient:
                 except ConnectionResetError:
                     # This except might happen when server is suddenly stopped
                     payload = b''
+            
 
             # Store answer and notify function
-            self._comm_response[report_event] = (command_recv, payload)
+            self._comm_response[report_event] = (sending_data[0], payload)
             report_event.set()
 
         # close socket

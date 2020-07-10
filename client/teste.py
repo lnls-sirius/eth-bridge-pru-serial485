@@ -7,6 +7,11 @@ import PRUserial485
 import sys
 import time
 
+salas = ['101','102','103','104','105','106','107','108','109','110','111','112','113','114','115','116','117','118','119','120']
+sufixos = ['117','118']
+
+conexoes = []
+
 def includeChecksum(string):
     counter = 0
     i = 0
@@ -17,18 +22,29 @@ def includeChecksum(string):
     counter = (256 - counter) & 0xFF
     return(string + [chr(counter)])
 
+for sala in salas:
+    for mbtemp in sufixos:
+        conexoes.append(PRUserial485.EthBrigdeClient(ip_address='10.128.{}.{}'.format(sala,mbtemp)))
 
+for conn in conexoes:
+    conn.threads_start()
 
-fbp_write_4setpoints = ['\x01','\x50','\x00','\x11','\x11']+['\x00']*16+['\x8d']
+fbp_write_4setpoints =  ['\x01','\x10','\x00','\x01','\x00', '\xee'] # ['\x01','\x50','\x00','\x11','\x11']+['\x00']*16+['\x8d']
 fbp_read_var_group = ["\x01", "\x12", "\x00", "\x01", "\x03", "\xe9"]
 
-c = PRUserial485.EthBrigdeClient(ip_address='10.128.103.106')
+#c = PRUserial485.EthBrigdeClient(ip_address='10.128.103.106', use_general=False)
+c = PRUserial485.EthBrigdeClient(ip_address='10.128.103.106', use_general=False)
 c.threads_start()
 
 # Limpa e cria grupo de variaveis
-c.write(["\x01", "\x32", "\x00", "\x00", "\xcd"],1000)
-c.write(includeChecksum(["\x01","\x30", "\x00", "\x0d", "\x19", "\x1a", "\x1b", "\x1c", "\x1d", "\x1e", "\x1f", "\x28", "\x2c", "\x30", "\x34", "\x38", "\x3c"]),1000)
-
+#a=time.time()
+#for conn in conexoes:
+#   conn.write(["\x01", "\x32", "\x00", "\x00", "\xcd"],0)
+#   conn.read()
+#   conn.write(includeChecksum(["\x01","\x30", "\x00", "\x0d", "\x19", "\x1a", "\x1b", "\x1c", "\x1d", "\x1e", "\x1f", "\x28", "\x2c", "\x30", "\x34", "\x38", "\x3c"]),0)
+#   conn.read()
+#print(time.time()-a)
+#
 
 t0 = time.time()
 for i in range(int(sys.argv[1])):
