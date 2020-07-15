@@ -10,8 +10,11 @@
 #include <string.h>
 #include <PRUserial485.h>
 
-#define BUFFER_SIZE 2048
 #define on_error(...) { fprintf(stderr, __VA_ARGS__); fflush(stderr); exit(1); }
+#define BUFFER_SIZE                           2048
+#define COMMAND_PRUserial485_write            3
+#define COMMAND_PRUserial485_read             4
+#define COMMAND_PRUserial485_write_then_read  17
 
 int main (int argc, char *argv[]) {
 
@@ -25,8 +28,12 @@ int main (int argc, char *argv[]) {
 
   uint8_t received_data[BUFFER_SIZE];
   uint8_t header_buff[5], timeout_buff[4];
-  uint32_t received_size, message_size;
+  uint32_t received_size, message_size, reply_size;
   uint8_t* reply_buffer = malloc(BUFFER_SIZE * sizeof(uint8_t)); // array to hold the result
+  uint8_t* send_status = malloc(1 * sizeof(uint8_t));;
+
+  int rd1, rd2, rd3;
+  int j=0;
 
 
 
@@ -58,7 +65,7 @@ int main (int argc, char *argv[]) {
   }
 
   printf("Server is listening on %d\n", port);
-
+  
   while (1) {
     socklen_t client_len = sizeof(client);
     client_fd = accept(server_fd, (struct sockaddr *) &client, &client_len);
@@ -69,30 +76,63 @@ int main (int argc, char *argv[]) {
     fflush(stdout);
 
     while (1) {
-      int rd1 = recv(client_fd, header_buff, 5, MSG_WAITALL);
-      int rd2 = recv(client_fd, timeout_buff, 4, MSG_WAITALL);
-      message_size = (header_buff[1] *(256*256*256) + header_buff[2] *(256*256) + header_buff[3] *256 + header_buff[4]) - 4;
-      int rd3 = recv(client_fd, buf, message_size, MSG_WAITALL);
+      rd1 = rd2 = rd3 = 1;
+      rd1 = recv(client_fd, header_buff, 5, MSG_WAITALL);
+      message_size = (header_buff[1] *(256*256*256) + header_buff[2] *(256*256) + header_buff[3] *256 + header_buff[4]);
+      
 
-      if (rd1 < 0 | rd2 <0 | rd3 < 0)
+      if(message_size > 0)
+      {
+        rd2 = recv(client_fd, timeout_buff, 4, MSG_WAITALL);
+        message_size -= 4;
+        rd3 = recv(client_fd, buf, message_size, MSG_WAITALL);
+      }
+      
+      
+      
+
+      if (rd1 <= 0 | rd2 <= 0 | rd3 <= 0)
       { 
         fprintf(stdout, "Client %s:%d disconnected\n", inet_ntoa(client.sin_addr), (int) ntohs(client.sin_port)); 
         fflush(stdout);
         break;
       }
 
-      send_data_PRU(buf, &message_size, 1.0);
-      recv_data_PRU(received_data, &received_size, 0);
+      if(header_buff[0] != COMMAND_PRUserial485_read)
+      {
+        *send_status = send_data_PRU(buf, &message_size, 1.0);
+        recv_data_PRU(received_data, &received_size, 0);
+      }
+      
+      if(header_buff[0] != COMMAND_PRUserial485_write)
+      {
+        header_buff[1] = received_size / (256*256*256);
+        header_buff[2] = received_size / (256*256);
+        header_buff[3] = received_size / 256;
+        header_buff[4] = received_size / 1; 
 
-      header_buff[1] = received_size / (256*256*256);
-      header_buff[2] = received_size / (256*256);
-      header_buff[3] = received_size / 256;
-      header_buff[4] = received_size / 1; 
+        memcpy(reply_buffer, header_buff, 5 * sizeof(uint8_t)); 
+        memcpy(reply_buffer + 5, received_data, received_size * sizeof(uint8_t));
+        reply_size = received_size + 5;
+      }
+      else
+      {
+        if(header_buff[0] == COMMAND_PRUserial485_write)
+        {
+          header_buff[1] = 0;
+          header_buff[2] = 0;
+          header_buff[3] = 0;
+          header_buff[4] = 1; 
+          //header_buff[5] = send_status;
 
-      memcpy(reply_buffer, header_buff, 5 * sizeof(uint8_t)); 
-      memcpy(reply_buffer + 5, received_data, received_size * sizeof(uint8_t));
+          memcpy(reply_buffer, header_buff, 5 * sizeof(uint8_t));
+          memcpy(reply_buffer + 5, send_status, 1 * sizeof(uint8_t));
+          reply_size = 6;
+        }
+      }
+      
 
-      int out2 = send(client_fd, reply_buffer, received_size+5, 0);
+      int out2 = send(client_fd, reply_buffer, reply_size, 0);
       if (out2 < 0) on_error("Client write failed\n");
     }
   }
