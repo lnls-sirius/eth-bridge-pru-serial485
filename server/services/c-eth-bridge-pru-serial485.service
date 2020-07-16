@@ -1,0 +1,17 @@
+[Unit]
+Description=BeagleBone Black C VERSION Ethernet Bridge for PRUserial485
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Restart=always
+RestartSec=3
+Type=simple 
+WorkingDirectory=/root/eth-bridge-pru-serial485/server/
+ExecStartPre=/bin/sleep 5
+ExecStart=/root/eth-bridge-pru-serial485/server/teste 5000
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target
