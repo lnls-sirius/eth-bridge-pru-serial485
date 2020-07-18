@@ -8,7 +8,7 @@ CLIENT SIDE - PRUserial485 via Ethernet bridge
 Author: Patricia Nallin
 
 Release Date:
-06/aug/2019
+18/july/2020
 
 Bytes:
 - 0: command
