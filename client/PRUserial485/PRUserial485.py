@@ -54,28 +54,14 @@ class ConstSyncMode:
     ALL = (MIGINT, MIGEND, RMPINT, RMPEND, BRDCST)
 
 
-class EthBrigdeClient:
+class _EthBrigdeClientCommonInterface:
     """."""
 
-    def __init__(self, ip_address, use_general=True):
+    def __init__(self, ip_address):
         """."""
-        # Dictionary for COMM_RESPONSE
-        self._comm_response = {}
-
-        self._use_general = use_general
-
-        # Queues
-        self._queue_rw = Queue()
-        if self._use_general:
-            self._queue_general = Queue()
-
         # IP
         self._bbb_ip = self._check_ip_address(ip_address)
-
-        self._thread_cmd_rw, self._thread_cmd_general = \
-            self._threads_create()
-
-        self._close = False
+        self.socket = None
 
     def open(self, baudrate=6, mode=b'M'):
         """Procedimento de inicialização da PRU."""
@@ -96,13 +82,6 @@ class EthBrigdeClient:
         # Payload: none
         payload = _c.COMMAND_PRUserial485_close
         self._send_communication_data(payload)
-        self._close = True
-
-    def threads_start(self):
-        """."""
-        self._thread_cmd_rw.start()
-        if self._use_general:
-            self._thread_cmd_general.start()
 
     def read(self):
         """Recebe dados através da interface serial."""
@@ -126,6 +105,21 @@ class EthBrigdeClient:
         if command == ord(_c.COMMAND_PRUserial485_write) and \
                 len(payload_recv) == 1:
             return ord(payload_recv)
+        else:
+            return None
+
+    def write_then_read(self, data=None, timeout=0):
+        """Envia dados através da interface serial e ja recebe a resposta."""
+        # Payload: TIMEOUT (4 bytes) + DATA (len(DATA) bytes)
+        if data is None:
+            data = []
+        payload = _c.COMMAND_PRUserial485_write_then_read + struct.pack(
+            ">f", timeout)
+        payload += bytearray([ord(i) for i in data])
+        command, payload_recv = self._send_communication_data(payload)
+        data = [chr(i) for i in payload_recv]
+        if command == ord(_c.COMMAND_PRUserial485_write_then_read):
+            return data
         else:
             return None
 
@@ -160,6 +154,72 @@ class EthBrigdeClient:
             return ord(payload_recv)
         else:
             return None
+
+    # --- aux. methods ---
+    @staticmethod
+    def _check_ip_address(ip_address):
+        """Define beaglebone IP address."""
+        if ip_address.startswith('10.128') and \
+                len(ip_address.split('.')) == 4:
+            return ip_address
+        else:
+            raise ValueError('Invalid IP')
+
+    @staticmethod
+    def _payload_length(payload):
+        """."""
+        return(struct.pack("B", payload[0]) +
+               struct.pack(">I", (len(payload)-1)) + payload[1:])
+
+    def _socket_connect(self, conn_port):
+        # Create socket connection
+        if self._bbb_ip is None:
+            raise ValueError('BeagleBone IP address undefined!')
+
+        if self.socket is None:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        self.socket.connect((self._bbb_ip, conn_port))
+        self.socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
+
+    def _send_communication_data(self, payload):
+        _ = payload
+        return b'', b''
+
+
+class EthBrigdeClientComplete(_EthBrigdeClientCommonInterface):
+    """."""
+
+    def __init__(self, ip_address, use_general=True):
+        """."""
+        super().__init__(ip_address)
+
+        # Dictionary for COMM_RESPONSE
+        self._comm_response = {}
+
+        self._use_general = use_general
+
+        # Queues
+        self._queue_rw = Queue()
+        if self._use_general:
+            self._queue_general = Queue()
+
+        self._thread_cmd_rw, self._thread_cmd_general = \
+            self._threads_create()
+
+        self._close = False
+
+    def close(self):
+        """Finish PRU."""
+        # Payload: none
+        super().close()
+        self._close = True
+
+    def threads_start(self):
+        """."""
+        self._thread_cmd_rw.start()
+        if self._use_general:
+            self._thread_cmd_general.start()
 
     # ---
 
@@ -292,30 +352,13 @@ class EthBrigdeClient:
 
         return thread_cmd_rw, thread_cmd_general
 
-    def _check_ip_address(self, ip_address):
-        """Define beaglebone IP address."""
-        if ip_address.startswith('10.128') and \
-                len(ip_address.split('.')) == 4:
-            return ip_address
-        else:
-            raise ValueError('Invalid IP')
-
-    @staticmethod
-    def _payload_length(payload):
-        """."""
-        return(struct.pack("B", payload[0]) +
-               struct.pack(">I", (len(payload)-1)) + payload[1:])
-
     def _socket_communicate(self, conn_port, data_queue):
         """."""
         # Create socket connection
         if self._bbb_ip is None:
             raise ValueError('BeagleBone IP address undefined!')
 
-        remote_socket = socket.socket(socket.AF_INET,
-                                      socket.SOCK_STREAM)
-        remote_socket.connect((self._bbb_ip, conn_port))
-        remote_socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
+        self._socket_connect(conn_port)
         remote_socket_connected = True
 
         while not self._close:
@@ -334,28 +377,26 @@ class EthBrigdeClient:
             for _ in range(3):
                 if not remote_socket_connected:
                     try:
-                        remote_socket.connect((self._bbb_ip, conn_port))
-                        remote_socket.setsockopt(
-                            socket.SOL_TCP, socket.TCP_NODELAY, 1)
+                        self._socket_connect(conn_port)
                         remote_socket_connected = True
                     except:
                         continue
 
                 if remote_socket_connected:
                     try:
-                        remote_socket.sendall(
-                            EthBrigdeClient._payload_length(sending_data))
+                        self.socket.sendall(
+                            EthBrigdeClientComplete._payload_length(
+                                sending_data))
                         break
                     except:
                         remote_socket_connected = False
-                        remote_socket = socket.socket(socket.AF_INET,
-                                                      socket.SOCK_STREAM)
+                        self.socket = None
 
             # Receive prefix: command (1 byte) + data_size (4 bytes)
             answer = None
             if remote_socket_connected:
                 try:
-                    answer = remote_socket.recv(5)
+                    answer = self.socket.recv(5)
                 except ConnectionResetError:
                     # This except might happen when server is suddenly stopped
                     answer = []
@@ -372,8 +413,8 @@ class EthBrigdeClient:
             if data_size:
                 try:
                     for _ in range(int(data_size / 4096)):
-                        payload += remote_socket.recv(4096, socket.MSG_WAITALL)
-                    payload += remote_socket.recv(
+                        payload += self.socket.recv(4096, socket.MSG_WAITALL)
+                    payload += self.socket.recv(
                         int(data_size % 4096), socket.MSG_WAITALL)
                 except ConnectionResetError:
                     # This except might happen when server is suddenly stopped
@@ -384,7 +425,7 @@ class EthBrigdeClient:
             report_event.set()
 
         # close socket
-        remote_socket.close()
+        self.socket.close()
 
     def _send_communication_data(self, payload):
         """."""
@@ -406,3 +447,80 @@ class EthBrigdeClient:
         del notification_event
 
         return command, payload_recv
+
+
+class EthBrigdeClient(_EthBrigdeClientCommonInterface):
+    """."""
+
+    def __init__(self, ip_address):
+        """."""
+        super().__init__(ip_address)
+
+        # NOTE: Should I connect here with option #1, #2 or should I leave
+        # it for the first interaction with the server?
+        self.connect_socket()  # #1
+        # Thread(target=self.connect_socket, daemon=True).start()  # #2
+
+    def close(self):
+        """Encerra a PRU."""
+        super().close()
+        self.close_socket()
+
+    def close_socket(self):
+        """Close socket connection."""
+        # close socket
+        self.socket.close()
+
+    def connect_socket(self):
+        """Open a socket connection."""
+        self._socket_connect(SERVER_PORT_RW)
+
+    # --- aux. methods ---
+
+    def _send_communication_data(self, payload):
+        """."""
+        datalen = EthBrigdeClient._payload_length(payload)
+
+        # values to be returned in case of unsuccessfull sending data
+        command_recv = b''
+        payload = b''
+        try:
+            self.socket.sendall(datalen)
+        except:
+            self.socket = None
+            for _ in range(3):
+                # Try reconnecting 3 times if remote socket is not available
+                try:
+                    self.connect_socket()
+                    self.socket.sendall(datalen)
+                    break
+                except:
+                    self.socket = None
+            else:
+                return command_recv, payload
+
+        # Receive prefix: command (1 byte) + data_size (4 bytes)
+        try:
+            answer = self.socket.recv(5)
+        except ConnectionResetError:
+            # This except might happen when server is suddenly stopped
+            answer = []
+
+        if answer:
+            command_recv = answer[0]
+            data_size = struct.unpack(">I", answer[1:])[0]
+        else:
+            return command_recv, payload
+
+        # Receive data/payload
+        if data_size:
+            try:
+                for _ in range(int(data_size / 4096)):
+                    payload += self.socket.recv(4096, socket.MSG_WAITALL)
+                payload += self.socket.recv(
+                    int(data_size % 4096), socket.MSG_WAITALL)
+            except ConnectionResetError:
+                # This except might happen when server is suddenly stopped
+                return command_recv, payload
+
+        return command_recv, payload
