@@ -7,10 +7,10 @@ SERVER SIDE - BEAGLEBONE BLACK SCRIPT
 Author: Patricia Nallin
 
 Release:
-09/june/2020
+18/july/2020
 """
 
-RELEASE_DATE = "09/june/2020"
+RELEASE_DATE = "18/july/2020"
 
 import socket
 import time
@@ -191,9 +191,15 @@ def processThread_rw():
             data = ''
             answer = (ANSWER_Ok + res)
 
+        elif (item[0] == COMMAND_PRUserial485_write_then_read):
+            timeout = struct.unpack(">f", item[1][:4])[0]
+            data = item[1][4:]
+            res = _lib.PRUserial485_write(data, timeout)
+            answer = (ANSWER_Ok + _lib.PRUserial485_read())
+
         answer = item[0] + answer[1:]
         client.sendall(payload_length(answer))
-        
+
         # LOGGING QUEUE = [CLIENT_INFO, COMMAND_CODE, INPUT_DATA, OUTPUT_DATA]
         queue_logging.put([client, item[0], data, answer[1:]])
 #            eth_bridge_log.info("CLIENT: {}- COMMAND: {}\t- INCOMING: {} - OUTCOMING: {}".format(client.getpeername(), PRUserial485_CommandName[item[0]], data, answer[1:]))
@@ -221,7 +227,7 @@ def clientThread(client_connection, client_info, conn_port):
 
             # Put operation in Queue
             if len(message) == data_size:
-                if command == ord(COMMAND_PRUserial485_write) or command == ord(COMMAND_PRUserial485_read):
+                if command == ord(COMMAND_PRUserial485_write) or command == ord(COMMAND_PRUserial485_read) or command == ord(COMMAND_PRUserial485_write_then_read):
                     queue_rw.put([command, message, client_connection])
                 else:
                     queue_general.put([command, message, client_connection])
@@ -278,14 +284,14 @@ def daemon_server(daemon_port):
             daemon_socket.bind(("", DAEMON_PORT))
             daemon_socket.listen(1)
             sys.stdout.write(time_string() + "TCP/IP daemon server on port {} started\n".format(DAEMON_PORT))
-            sys.stdout.flush()        
+            sys.stdout.flush()
 
             while(True):
                 connection, client_info = daemon_socket.accept()
 
         except Exception:
             daemon_socket.close()
-            sys.stdout.write(time_string() + "Connection problem on daemon port {}. Error message:\n\n".format(DAEMON_PORT))  
+            sys.stdout.write(time_string() + "Connection problem on daemon port {}. Error message:\n\n".format(DAEMON_PORT))
             traceback.print_exc(file = sys.stdout)
             sys.stdout.write("\n")
             sys.stdout.flush()
@@ -339,4 +345,3 @@ if (__name__ == '__main__'):
             pass
         else:
             eth_bridge_log.info("CLIENT: {}- COMMAND: {}\t- INCOMING: {} - OUTCOMING: {}".format(info[0].getpeername(), PRUserial485_CommandName[info[1]], info[2], info[3]))
-
