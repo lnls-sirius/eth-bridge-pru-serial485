@@ -54,7 +54,7 @@ class ConstSyncMode:
     ALL = (MIGINT, MIGEND, RMPINT, RMPEND, BRDCST)
 
 
-class _EthBrigdeClientCommonInterface:
+class _EthBridgeClientCommonInterface:
     """."""
 
     def __init__(self, ip_address):
@@ -187,7 +187,7 @@ class _EthBrigdeClientCommonInterface:
         return b'', b''
 
 
-class EthBrigdeClientComplete(_EthBrigdeClientCommonInterface):
+class EthBridgeClientComplete(_EthBridgeClientCommonInterface):
     """."""
 
     def __init__(self, ip_address, use_general=True):
@@ -385,7 +385,7 @@ class EthBrigdeClientComplete(_EthBrigdeClientCommonInterface):
                 if remote_socket_connected:
                     try:
                         self.socket.sendall(
-                            EthBrigdeClientComplete._payload_length(
+                            EthBridgeClientComplete._payload_length(
                                 sending_data))
                         break
                     except:
@@ -449,7 +449,7 @@ class EthBrigdeClientComplete(_EthBrigdeClientCommonInterface):
         return command, payload_recv
 
 
-class EthBrigdeClient(_EthBrigdeClientCommonInterface):
+class EthBridgeClient(_EthBridgeClientCommonInterface):
     """."""
 
     def __init__(self, ip_address):
@@ -479,7 +479,7 @@ class EthBrigdeClient(_EthBrigdeClientCommonInterface):
 
     def _send_communication_data(self, payload):
         """."""
-        datalen = EthBrigdeClient._payload_length(payload)
+        datalen = EthBridgeClient._payload_length(payload)
 
         # values to be returned in case of unsuccessfull sending data
         command_recv = b''
