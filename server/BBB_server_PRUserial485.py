@@ -21,29 +21,11 @@ import traceback
 import os.path
 import subprocess
 import datetime
-import logging
-from logging.handlers import RotatingFileHandler
 sys.path.append(os.path.abspath(os.path.join(os.path.pardir,'common')))
 from constants_PRUserial485_bridge import *
 from functions_PRUserial485_bridge import *
 from queue import Queue
 import PRUserial485 as _lib
-
-
-# Logging - Files available for Apache webserver
-LOG_SIZE = 500 # kB
-BACKUP_FILES = 5
-LOG_FILENAME = '/var/www/html/logs/eth-bridge-pru-serial485_commands.txt'
-
-
-eth_bridge_log = logging.getLogger('eth-bridge-pru-serial485_commands')
-eth_bridge_log.setLevel(logging.INFO)
-
-handler = RotatingFileHandler(LOG_FILENAME, mode='a', maxBytes=LOG_SIZE*1024, backupCount=BACKUP_FILES)
-handler.setFormatter(logging.Formatter('%(asctime)s | %(levelname)s | %(message)s'))
-
-eth_bridge_log.addHandler(handler)
-
 
 # TCP port for PRUserial485 bridge
 SERVER_PORT_RW = 5000
@@ -188,7 +170,6 @@ def processThread_rw():
 
         elif (item[0] == COMMAND_PRUserial485_read):
             res = read_data[client]
-            data = ''
             answer = (ANSWER_Ok + res)
 
         elif (item[0] == COMMAND_PRUserial485_request):
@@ -199,11 +180,6 @@ def processThread_rw():
 
         answer = item[0] + answer[1:]
         client.sendall(payload_length(answer))
-
-        # LOGGING QUEUE = [CLIENT_INFO, COMMAND_CODE, INPUT_DATA, OUTPUT_DATA]
-        queue_logging.put([client, item[0], data, answer[1:]])
-#            eth_bridge_log.info("CLIENT: {}- COMMAND: {}\t- INCOMING: {} - OUTCOMING: {}".format(client.getpeername(), PRUserial485_CommandName[item[0]], data, answer[1:]))
-
 
 
 def clientThread(client_connection, client_info, conn_port):
@@ -299,17 +275,17 @@ def daemon_server(daemon_port):
 
 
 
+
+
 if (__name__ == '__main__'):
 
     sys.stdout.write("----- TCP/IP SERVER FOR PRUSERIAL485 -----\n")
     sys.stdout.write("----- Release date: {} -----\n".format(RELEASE_DATE))
-    sys.stdout.write("----- Logging write/read operations at {} -----\n".format(LOG_FILENAME))
     sys.stdout.write(time_string() + "Initialization.\n")
     sys.stdout.flush()
 
     queue_general = Queue()
     queue_rw = Queue()
-    queue_logging = Queue()
 
     # Create and start process threads
     process_general = threading.Thread(target = processThread_general)
@@ -335,13 +311,4 @@ if (__name__ == '__main__'):
     daemon_thread.start()
 
     while (True):
-        # LOGGING QUEUE = [CLIENT_INFO, COMMAND_CODE, INPUT_DATA, OUTPUT_DATA]
-        info = queue_logging.get(block = True)
-
-        # Do not log commands 0x12 and 0x13 (request and reply BSMP commands for reading variable groups)
-        if (info[1] == COMMAND_PRUserial485_write and info[2].startswith(b'\x12', 1)):
-            pass
-        elif (info[1] == COMMAND_PRUserial485_read and info[3].startswith(b'\x00\x13')):
-            pass
-        else:
-            eth_bridge_log.info("CLIENT: {}- COMMAND: {}\t- INCOMING: {} - OUTCOMING: {}".format(info[0].getpeername(), PRUserial485_CommandName[info[1]], info[2], info[3]))
+        time.sleep(10)
