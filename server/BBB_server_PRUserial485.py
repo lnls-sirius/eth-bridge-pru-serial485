@@ -306,9 +306,9 @@ if (__name__ == '__main__'):
     connection_rw.start()
 
     # Daemon thread - Not used yet
-    daemon_thread = threading.Thread(target = daemon_server, args = [DAEMON_PORT])
-    daemon_thread.setDaemon(True)
-    daemon_thread.start()
+    #daemon_thread = threading.Thread(target = daemon_server, args = [DAEMON_PORT])
+    #daemon_thread.setDaemon(True)
+    #daemon_thread.start()
 
     while (True):
         time.sleep(10)
