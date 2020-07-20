@@ -4,6 +4,7 @@ COMMAND_PRUserial485_address = b'\x01'
 COMMAND_PRUserial485_close = b'\x02'
 COMMAND_PRUserial485_write = b'\x03'
 COMMAND_PRUserial485_read = b'\x04'
+COMMAND_PRUserial485_request = b'\x11'
 
 # Curves
 COMMAND_PRUserial485_curve = b'\x05'
@@ -37,6 +38,7 @@ PRUserial485_CommandName = {    COMMAND_PRUserial485_open : "PRUserial485_open",
                                 COMMAND_PRUserial485_close : "PRUserial485_close",
                                 COMMAND_PRUserial485_write : "PRUserial485_write",
                                 COMMAND_PRUserial485_read : "PRUserial485_read",
+                                COMMAND_PRUserial485_request : "PRUserial485_request",
                                 # Curves
                                 COMMAND_PRUserial485_curve : "PRUserial485_curve",
                                 COMMAND_PRUserial485_set_curve_block : "PRUserial485_set_curve_block",
