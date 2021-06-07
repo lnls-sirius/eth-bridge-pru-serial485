@@ -25,6 +25,7 @@ from PRUserial485 import constants_PRUserial485_bridge as _c
 
 SERVER_PORT_RW = 5000
 SERVER_PORT_GENERAL = 6000
+DEFAULT_TIMEOUT = 1  # [s]
 
 
 class ConstReturn:
@@ -178,6 +179,7 @@ class _EthBridgeClientCommonInterface:
 
         if self.socket is None:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.timeout = DEFAULT_TIMEOUT
 
         self.socket.connect((self._bbb_ip, conn_port))
         self.socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
@@ -486,6 +488,8 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
         payload = b''
         try:
             self.socket.sendall(datalen)
+        except socket.timeout
+            raise  # raise same exception
         except:
             self.socket = None
             for _ in range(3):
@@ -494,6 +498,8 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
                     self.connect_socket()
                     self.socket.sendall(datalen)
                     break
+                except socket.timeout:
+                    raise  # raise same exception
                 except:
                     self.socket = None
             else:
@@ -502,6 +508,8 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
         # Receive prefix: command (1 byte) + data_size (4 bytes)
         try:
             answer = self.socket.recv(5)
+        except socket.timeout:
+            raise  # raise same exception
         except ConnectionResetError:
             # This except might happen when server is suddenly stopped
             answer = []
@@ -519,6 +527,8 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
                     payload += self.socket.recv(4096, socket.MSG_WAITALL)
                 payload += self.socket.recv(
                     int(data_size % 4096), socket.MSG_WAITALL)
+            except socket.timeout:
+                    raise  # raise same exception
             except ConnectionResetError:
                 # This except might happen when server is suddenly stopped
                 return command_recv, payload
