@@ -179,7 +179,7 @@ class _EthBridgeClientCommonInterface:
 
         if self.socket is None:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.timeout = DEFAULT_TIMEOUT
+        self.socket.settimeout(DEFAULT_TIMEOUT)
 
         self.socket.connect((self._bbb_ip, conn_port))
         self.socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
