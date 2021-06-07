@@ -496,7 +496,7 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
             
         try:
             self.socket.sendall(datalen)
-        except socket.timeout
+        except socket.timeout:
             raise  # raise same exception
         except:
             self.socket = None
