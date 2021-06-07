@@ -457,6 +457,7 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
     def __init__(self, ip_address):
         """."""
         super().__init__(ip_address)
+        self._send_counter = 0
 
         # NOTE: Should I connect here with option #1, #2 or should I leave
         # it for the first interaction with the server?
@@ -486,6 +487,13 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
         # values to be returned in case of unsuccessfull sending data
         command_recv = b''
         payload = b''
+
+        if self._send_counter > 125:
+            self._send_counter = 0
+            raise socket.timeout
+        else:
+            self._send_counter += 1
+            
         try:
             self.socket.sendall(datalen)
         except socket.timeout
