@@ -61,7 +61,7 @@ class _EthBridgeClientCommonInterface:
     def __init__(self, ip_address):
         """."""
         # IP
-        self._bbb_ip = self._check_ip_address(ip_address)
+        self._bbb_ip = ip_address
         self.socket = None
 
     def open(self, baudrate=6, mode=b'M'):
@@ -155,6 +155,37 @@ class _EthBridgeClientCommonInterface:
             return ord(payload_recv)
         else:
             return None
+    
+    
+    # ------------------------------------------------
+    # FF MODES - May be here or in general_thread
+    def set_ff_mode(self, mode=0):
+        """Habilita/desabilita correcoes automaticas via feed forward."""
+        # Payload: mode (1 byte)
+        payload = _c.COMMAND_FeedForward_setMode
+        if mode:
+            payload += struct.pack("B", 1)
+        else:
+            payload += struct.pack("B", 0)
+        self._send_communication_data(payload)
+
+    def read_ff_mode(self):
+        """Verifica se correcoes automaticas via feed forward estao habilitadas."""
+        # Payload: none
+        payload = _c.COMMAND_FeedForward_readMode
+        command, payload_recv = self._send_communication_data(payload)
+        if command == ord(_c.COMMAND_FeedForward_readMode) and \
+                len(payload_recv) == 1:
+            if ord(payload_recv) == 0:
+                return False
+            else:
+                return True
+        else:
+            return None
+    # ------------------------------------------------
+
+
+
 
     # --- aux. methods ---
     @staticmethod
@@ -437,7 +468,9 @@ class EthBridgeClientComplete(_EthBridgeClientCommonInterface):
 
         # Add command into queue
         if payload[0] == ord(_c.COMMAND_PRUserial485_write) or \
-                payload[0] == ord(_c.COMMAND_PRUserial485_read):
+                payload[0] == ord(_c.COMMAND_PRUserial485_read) or \
+                    payload[0] == ord(_c.COMMAND_FeedForward_setMode) or \
+                        payload[0] == ord(_c.COMMAND_FeedForward_readMode):
             self._queue_rw.put([payload[0], payload, notification_event])
         else:
             self._queue_general.put([payload[0], payload, notification_event])
