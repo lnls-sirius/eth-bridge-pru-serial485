@@ -28,9 +28,9 @@ uninstall:
 	$(PREFIX) $(PIP) uninstall -y $(PACKAGE)
 
 develop-install: clean develop-uninstall
-	$(PREFIX) $(PIP) install --no-deps -e ./
+	$(PIP) install --no-deps -e ./
 
 # known issue: It will fail to uninstall scripts
 #  if they were installed in develop mode
 develop-uninstall:
-	$(PREFIX) $(PIP) uninstall -y $(PACKAGE)
+	$(PIP) uninstall -y $(PACKAGE)
