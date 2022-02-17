@@ -11,18 +11,11 @@ ifeq ($(CONDA_PREFIX),)
 	PIP=pip-sirius
 endif
 
-install: clean
-	sudo ./setup.py install --single-version-externally-managed --compile --force --record /dev/null
-
-develop: clean
-	sudo ./setup.py develop
-
 clean:
 	git clean -fdX
 
-# Targets for workstation
-install-workstation: clean uninstall
-	$(PREFIX) $(PIP) install --no-deps ./
+install: clean uninstall
+	$(PREFIX) $(PIP) install --no-deps --compile ./
 
 uninstall:
 	$(PREFIX) $(PIP) uninstall -y $(PACKAGE)
