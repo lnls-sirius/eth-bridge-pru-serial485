@@ -20,7 +20,8 @@ import socket
 import struct
 from threading import Thread, Event
 from queue import Queue, Empty
-from PRUserial485 import constants_PRUserial485_bridge as _c
+
+import PRUserial485.consts as _c
 
 
 SERVER_PORT_RW = 5000
@@ -62,18 +63,16 @@ class _EthBridgeClientCommonInterface:
         """."""
         # IP
         self._bbb_ip = self._check_ip_address(ip_address)
+        # self._bbb_ip = ip_address
         self.socket = None
 
-    def open(self, baudrate=6, mode=b'M'):
+    def open(self, baudrate=6, mode=b"M"):
         """Procedimento de inicialização da PRU."""
-        if (mode in _c.AVAILABLE_MODES) and \
-                (baudrate in _c.AVAILABLE_BAUDRATES):
-            payload = _c.COMMAND_PRUserial485_open + \
-                mode + struct.pack(">I", baudrate)
+        if (mode in _c.AVAILABLE_MODES) and (baudrate in _c.AVAILABLE_BAUDRATES):
+            payload = _c.COMMAND_PRUserial485_open + mode + struct.pack(">I", baudrate)
             command, payload_recv = self._send_communication_data(payload)
 
-            if command == ord(_c.COMMAND_PRUserial485_open) and \
-                    len(payload_recv) == 1:
+            if command == ord(_c.COMMAND_PRUserial485_open) and len(payload_recv) == 1:
                 return ord(payload_recv)
             else:
                 return None
@@ -89,13 +88,22 @@ class _EthBridgeClientCommonInterface:
         # Payload: none
         payload = _c.COMMAND_PRUserial485_read
         command, payload_recv = self._send_communication_data(payload)
-        data = [chr(i) for i in payload_recv]
+
+        if not payload_recv or payload_recv[0] == _c.ANSWER_ERR[0]:
+            raise TimeoutError("Timeout while waiting for power supply reply")
+        if not payload_recv or payload_recv[0] == _c.ANSWER_NOQUEUE[0]:
+            raise ValueError("No item in queue to be read")
+
+        data = [chr(i) for i in payload_recv[1:]]
+
         if command == ord(_c.COMMAND_PRUserial485_read):
             return data
         else:
-            return None
+            raise ValueError(
+                "Unexpected command {} returned ({} expected)".format(ord(_c.COMMAND_PRUserial485_read), command)
+            )
 
-    def write(self, data=None, timeout=0):
+    def write(self, data=None, timeout=2):
         """Envia dados através da interface serial."""
         # Payload: TIMEOUT (4 bytes) + DATA (len(DATA) bytes)
         if data is None:
@@ -103,26 +111,37 @@ class _EthBridgeClientCommonInterface:
         payload = _c.COMMAND_PRUserial485_write + struct.pack(">f", timeout)
         payload += bytearray([ord(i) for i in data])
         command, payload_recv = self._send_communication_data(payload)
-        if command == ord(_c.COMMAND_PRUserial485_write) and \
-                len(payload_recv) == 1:
-            return ord(payload_recv)
-        else:
-            return None
 
-    def request(self, data=None, timeout=0):
+        if not payload_recv or payload_recv[0] != _c.ANSWER_OK[0]:
+            raise TimeoutError("Timeout while waiting for power supply reply")
+
+        if command == ord(_c.COMMAND_PRUserial485_write) and len(payload_recv) == 2:
+            return ord(payload_recv[1:])
+        else:
+            raise ValueError(
+                "Unexpected command {} returned ({} expected)".format(ord(_c.COMMAND_PRUserial485_write), command)
+            )
+
+    def request(self, data=None, timeout=2):
         """Envia dados através da interface serial e ja recebe a resposta."""
         # Payload: TIMEOUT (4 bytes) + DATA (len(DATA) bytes)
         if data is None:
             data = []
-        payload = _c.COMMAND_PRUserial485_request + struct.pack(
-            ">f", timeout)
+        payload = _c.COMMAND_PRUserial485_request + struct.pack(">f", timeout)
         payload += bytearray([ord(i) for i in data])
         command, payload_recv = self._send_communication_data(payload)
-        data = [chr(i) for i in payload_recv]
+
+        if not payload_recv or payload_recv[0] != _c.ANSWER_OK[0]:
+            raise TimeoutError("Timeout while waiting for power supply reply")
+
+        data = [chr(i) for i in payload_recv[1:]]
+
         if command == ord(_c.COMMAND_PRUserial485_request):
             return data
         else:
-            return None
+            raise ValueError(
+                "Unexpected command {} returned ({} expected)".format(ord(_c.COMMAND_PRUserial485_request), command)
+            )
 
     def version(self):
         """Return version."""
@@ -139,8 +158,7 @@ class _EthBridgeClientCommonInterface:
         # Payload: none
         payload = _c.COMMAND_PRUserial485_server_eth_version
         command, payload_recv = self._send_communication_data(payload)
-        if command == ord(_c.COMMAND_PRUserial485_server_eth_version) and \
-                payload_recv:
+        if command == ord(_c.COMMAND_PRUserial485_server_eth_version) and payload_recv:
             return payload_recv.decode()
         else:
             return None
@@ -150,8 +168,7 @@ class _EthBridgeClientCommonInterface:
         # Payload: none
         payload = _c.COMMAND_PRUserial485_address
         command, payload_recv = self._send_communication_data(payload)
-        if command == ord(_c.COMMAND_PRUserial485_address) and \
-                len(payload_recv) == 1:
+        if command == ord(_c.COMMAND_PRUserial485_address) and len(payload_recv) == 1:
             return ord(payload_recv)
         else:
             return None
@@ -160,23 +177,20 @@ class _EthBridgeClientCommonInterface:
     @staticmethod
     def _check_ip_address(ip_address):
         """Define beaglebone IP address."""
-        if (ip_address.startswith('10.128') or \
-                ip_address.startswith('10.0.38')) and \
-                len(ip_address.split('.')) == 4:
+        if (ip_address.startswith("10.128") or ip_address.startswith("10.0.38")) and len(ip_address.split(".")) == 4:
             return ip_address
         else:
-            raise ValueError('Invalid IP')
+            raise ValueError("Invalid IP")
 
     @staticmethod
     def _payload_length(payload):
-        """."""
-        return(struct.pack("B", payload[0]) +
-               struct.pack(">I", (len(payload)-1)) + payload[1:])
+        """Inserts payload length at payload's second byte"""
+        return struct.pack("B", payload[0]) + struct.pack(">I", (len(payload) - 1)) + payload[1:]
 
     def _socket_connect(self, conn_port):
-        # Create socket connection
+        """Creates socket connection"""
         if self._bbb_ip is None:
-            raise ValueError('BeagleBone IP address undefined!')
+            raise ValueError("BeagleBone IP address undefined!")
 
         if self.socket is None:
             self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -187,7 +201,7 @@ class _EthBridgeClientCommonInterface:
 
     def _send_communication_data(self, payload):
         _ = payload
-        return b'', b''
+        return b"", b""
 
 
 class EthBridgeClientComplete(_EthBridgeClientCommonInterface):
@@ -207,8 +221,7 @@ class EthBridgeClientComplete(_EthBridgeClientCommonInterface):
         if self._use_general:
             self._queue_general = Queue()
 
-        self._thread_cmd_rw, self._thread_cmd_general = \
-            self._threads_create()
+        self._thread_cmd_rw, self._thread_cmd_general = self._threads_create()
 
         self._close = False
 
@@ -227,50 +240,43 @@ class EthBridgeClientComplete(_EthBridgeClientCommonInterface):
     # ---
 
     def curve(self, curve1, curve2, curve3, curve4, block=0):
-        """Carregamento de curva."""
+        """Loads curve"""
         # Payload: BLOCK (1 byte) +
-        if len(curve1) == len(curve2) == len(curve3) == len(curve4) and \
-                block in _c.AVAILABLE_CURVE_BLOCKS:
+        if len(curve1) == len(curve2) == len(curve3) == len(curve4) and block in _c.AVAILABLE_CURVE_BLOCKS:
             payload = _c.COMMAND_PRUserial485_curve + struct.pack("B", block)
             data1 = (struct.pack(">f", point) for point in curve1)
             data2 = (struct.pack(">f", point) for point in curve2)
             data3 = (struct.pack(">f", point) for point in curve3)
             data4 = (struct.pack(">f", point) for point in curve4)
-            payload += \
-                b''.join(data1) + b''.join(data2) + \
-                b''.join(data3) + b''.join(data4)
+            payload += b"".join(data1) + b"".join(data2) + b"".join(data3) + b"".join(data4)
             command, payload_recv = self._send_communication_data(payload)
-            if command == ord(_c.COMMAND_PRUserial485_curve) and \
-                    len(payload_recv) == 1:
+            if command == ord(_c.COMMAND_PRUserial485_curve) and len(payload_recv) == 1:
                 return ord(payload_recv)
             else:
                 return None
 
     def set_curve_block(self, block=0):
-        """Selecao de bloco de curva a ser realizado."""
+        """Sets curve block that will be used"""
         # Payload: BLOCK (1 byte)
         if block in _c.AVAILABLE_CURVE_BLOCKS:
-            payload = _c.COMMAND_PRUserial485_set_curve_block + \
-                struct.pack("B", block)
+            payload = _c.COMMAND_PRUserial485_set_curve_block + struct.pack("B", block)
             self._send_communication_data(payload)
 
     def read_curve_block(self):
-        """Leitura do bloco de curva que sera realizado."""
+        """Reads curve block that will be used"""
         # Payload: none
         payload = _c.COMMAND_PRUserial485_read_curve_block
         command, payload_recv = self._send_communication_data(payload)
-        if command == ord(_c.COMMAND_PRUserial485_read_curve_block) and \
-                len(payload_recv) == 1:
+        if command == ord(_c.COMMAND_PRUserial485_read_curve_block) and len(payload_recv) == 1:
             return ord(payload_recv)
         else:
             return None
 
-    def set_curve_pointer(self, pointer=0):
-        """Ajusta ponteiro para proximo ponto a ser executado (curva)."""
+    def set_curve_pointer(self, pointer: int = 0):
+        """Sets curve pointer to the next point (in the curve) to be processed"""
         # Payload: POINTER (4 bytes)
         if pointer > 0:
-            payload = _c.COMMAND_PRUserial485_set_curve_pointer + \
-                struct.pack(">I", pointer)
+            payload = _c.COMMAND_PRUserial485_set_curve_pointer + struct.pack(">I", pointer)
             self._send_communication_data(payload)
 
     def read_curve_pointer(self):
@@ -278,20 +284,21 @@ class EthBridgeClientComplete(_EthBridgeClientCommonInterface):
         # Payload: none
         payload = _c.COMMAND_PRUserial485_read_curve_pointer
         command, payload_recv = self._send_communication_data(payload)
-        if command == ord(_c.COMMAND_PRUserial485_read_curve_pointer) and \
-                len(payload_recv) == 4:
+        if command == ord(_c.COMMAND_PRUserial485_read_curve_pointer) and len(payload_recv) == 4:
             return struct.unpack(">I", payload_recv)[0]
         else:
             return None
 
-    def sync_start(self, sync_mode, delay, sync_address=0x00):
+    def sync_start(self, sync_mode, delay: int, sync_address: int = 0x00):
         """Inicia operação em modo síncrono."""
         # Payload: SYNC_MODE (1 byte) + DELAY (4 bytes) + SYNC_ADDRESS (1 byte)
-        if (sync_mode in _c.AVAILABLE_SYNC_MODES) and (delay >= 0) and \
-                (sync_address >= 0):
-            payload = _c.COMMAND_PRUserial485_sync_start + \
-                struct.pack("B", sync_mode) + struct.pack(">I", delay) + \
-                struct.pack("B", sync_address)
+        if (sync_mode in _c.AVAILABLE_SYNC_MODES) and (delay >= 0) and (sync_address >= 0):
+            payload = (
+                _c.COMMAND_PRUserial485_sync_start
+                + struct.pack("B", sync_mode)
+                + struct.pack(">I", delay)
+                + struct.pack("B", sync_address)
+            )
             self._send_communication_data(payload)
 
     def sync_stop(self):
@@ -305,8 +312,7 @@ class EthBridgeClientComplete(_EthBridgeClientCommonInterface):
         # Payload: none
         payload = _c.COMMAND_PRUserial485_sync_status
         command, payload_recv = self._send_communication_data(payload)
-        if command == ord(_c.COMMAND_PRUserial485_sync_status) and \
-                len(payload_recv) == 1:
+        if command == ord(_c.COMMAND_PRUserial485_sync_status) and len(payload_recv) == 1:
             if ord(payload_recv) == 0:
                 return False
             else:
@@ -319,8 +325,7 @@ class EthBridgeClientComplete(_EthBridgeClientCommonInterface):
         # Payload: none
         payload = _c.COMMAND_PRUserial485_read_pulse_count_sync
         command, payload_recv = self._send_communication_data(payload)
-        if command == ord(_c.COMMAND_PRUserial485_read_pulse_count_sync) and \
-                len(payload_recv) == 4:
+        if command == ord(_c.COMMAND_PRUserial485_read_pulse_count_sync) and len(payload_recv) == 4:
             return struct.unpack(">I", payload_recv)[0]
         else:
             return None
@@ -330,8 +335,7 @@ class EthBridgeClientComplete(_EthBridgeClientCommonInterface):
         """Zera contador de pulsos - Sync."""
         payload = _c.COMMAND_PRUserial485_clear_pulse_count_sync
         command, payload_recv = self._send_communication_data(payload)
-        if command == ord(_c.COMMAND_PRUserial485_clear_pulse_count_sync) and \
-                len(payload_recv) == 1:
+        if command == ord(_c.COMMAND_PRUserial485_clear_pulse_count_sync) and len(payload_recv) == 1:
             return ord(payload_recv)
         else:
             return None
@@ -340,15 +344,12 @@ class EthBridgeClientComplete(_EthBridgeClientCommonInterface):
 
     def _threads_create(self):
         """."""
-        thread_cmd_rw = \
-            Thread(target=self._socket_communicate,
-                   args=(SERVER_PORT_RW, self._queue_rw))
+        thread_cmd_rw = Thread(target=self._socket_communicate, args=(SERVER_PORT_RW, self._queue_rw))
         thread_cmd_rw.setDaemon(True)
         if self._use_general:
-            thread_cmd_general = \
-                Thread(
-                    target=self._socket_communicate,
-                    args=(SERVER_PORT_GENERAL, self._queue_general))
+            thread_cmd_general = Thread(
+                target=self._socket_communicate, args=(SERVER_PORT_GENERAL, self._queue_general)
+            )
             thread_cmd_general.setDaemon(True)
         else:
             thread_cmd_general = None
@@ -359,7 +360,7 @@ class EthBridgeClientComplete(_EthBridgeClientCommonInterface):
         """."""
         # Create socket connection
         if self._bbb_ip is None:
-            raise ValueError('BeagleBone IP address undefined!')
+            raise ValueError("BeagleBone IP address undefined!")
 
         self._socket_connect(conn_port)
         remote_socket_connected = True
@@ -382,16 +383,14 @@ class EthBridgeClientComplete(_EthBridgeClientCommonInterface):
                     try:
                         self._socket_connect(conn_port)
                         remote_socket_connected = True
-                    except:
+                    except Exception:
                         continue
 
                 if remote_socket_connected:
                     try:
-                        self.socket.sendall(
-                            EthBridgeClientComplete._payload_length(
-                                sending_data))
+                        self.socket.sendall(EthBridgeClientComplete._payload_length(sending_data))
                         break
-                    except:
+                    except Exception:
                         remote_socket_connected = False
                         self.socket = None
 
@@ -408,20 +407,19 @@ class EthBridgeClientComplete(_EthBridgeClientCommonInterface):
                 command_recv = answer[0]
                 data_size = struct.unpack(">I", answer[1:])[0]
             else:
-                command_recv = b''
+                command_recv = b""
                 data_size = 0
 
             # Receive data/payload
-            payload = b''
+            payload = b""
             if data_size:
                 try:
                     for _ in range(int(data_size / 4096)):
                         payload += self.socket.recv(4096, socket.MSG_WAITALL)
-                    payload += self.socket.recv(
-                        int(data_size % 4096), socket.MSG_WAITALL)
+                    payload += self.socket.recv(int(data_size % 4096), socket.MSG_WAITALL)
                 except ConnectionResetError:
                     # This except might happen when server is suddenly stopped
-                    payload = b''
+                    payload = b""
 
             # Store answer and notify function
             self._comm_response[report_event] = (command_recv, payload)
@@ -436,8 +434,7 @@ class EthBridgeClientComplete(_EthBridgeClientCommonInterface):
         notification_event = Event()
 
         # Add command into queue
-        if payload[0] == ord(_c.COMMAND_PRUserial485_write) or \
-                payload[0] == ord(_c.COMMAND_PRUserial485_read):
+        if payload[0] == ord(_c.COMMAND_PRUserial485_write) or payload[0] == ord(_c.COMMAND_PRUserial485_read):
             self._queue_rw.put([payload[0], payload, notification_event])
         else:
             self._queue_general.put([payload[0], payload, notification_event])
@@ -445,8 +442,7 @@ class EthBridgeClientComplete(_EthBridgeClientCommonInterface):
         # Wait command complete. Get answer and delete event
         notification_event.wait()
         notification_event.clear()
-        command, payload_recv = \
-            self._comm_response.pop(notification_event, None)
+        command, payload_recv = self._comm_response.pop(notification_event, None)
         del notification_event
 
         return command, payload_recv
@@ -485,14 +481,14 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
         datalen = EthBridgeClient._payload_length(payload)
 
         # values to be returned in case of unsuccessfull sending data
-        command_recv = b''
-        payload = b''
+        command_recv = b""
+        payload = b""
 
         try:
             self.socket.sendall(datalen)
         except socket.timeout:
-            raise  # raise same exception
-        except:
+            raise TimeoutError("Timeout while communicating with socket")  # raise same exception
+        except Exception:
             self.socket = None
             for _ in range(3):
                 # Try reconnecting 3 times if remote socket is not available
@@ -501,8 +497,8 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
                     self.socket.sendall(datalen)
                     break
                 except socket.timeout:
-                    raise  # raise same exception
-                except:
+                    raise TimeoutError("Timeout while communicating with socket")  # raise same exception
+                except Exception:
                     self.socket = None
             else:
                 return command_recv, payload
@@ -511,7 +507,7 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
         try:
             answer = self.socket.recv(5)
         except socket.timeout:
-            raise  # raise same exception
+            raise TimeoutError("Timeout while communicating with socket")  # raise same exception
         except ConnectionResetError:
             # This except might happen when server is suddenly stopped
             answer = []
@@ -527,10 +523,9 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
             try:
                 for _ in range(int(data_size / 4096)):
                     payload += self.socket.recv(4096, socket.MSG_WAITALL)
-                payload += self.socket.recv(
-                    int(data_size % 4096), socket.MSG_WAITALL)
+                payload += self.socket.recv(int(data_size % 4096), socket.MSG_WAITALL)
             except socket.timeout:
-                    raise  # raise same exception
+                raise TimeoutError("Timeout while communicating with socket")  # raise same exception
             except ConnectionResetError:
                 # This except might happen when server is suddenly stopped
                 return command_recv, payload

@@ -30,7 +30,9 @@ COMMAND_PRUserial485_server_eth_version = b'\x10'
 BRIDGE_Terminator = b'\x55'
 
 # Answers
-ANSWER_Ok = b'\x0f'
+ANSWER_OK = b'\x21'
+ANSWER_ERR = b'\x22'
+ANSWER_NOQUEUE = b'\x23'
 
 # Naming
 PRUserial485_CommandName = {    COMMAND_PRUserial485_open : "PRUserial485_open",
@@ -61,5 +63,6 @@ AVAILABLE_SYNC_MODES = [0x51, 0x5e, 0xc1, 0xce, 0x5b]
 
 
 # Location
-server_files_path = "/root/eth-bridge-pru-serial485/server"
-version_file_path = "/root/eth-bridge-pru-serial485/client/VERSION"
+SERVER_FILES_PATH = "/root/eth-bridge-pru-serial485/server"
+VERSION_FILE_PATH = "/root/eth-bridge-pru-serial485/client/VERSION"
+LOG_FILE_PATH="/var/log/eth-bridge.log"

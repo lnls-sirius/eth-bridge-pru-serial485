@@ -1,1 +1,0 @@
-../../common/constants_PRUserial485_bridge.py
