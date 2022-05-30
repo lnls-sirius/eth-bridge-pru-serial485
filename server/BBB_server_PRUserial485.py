@@ -7,10 +7,10 @@ SERVER SIDE - BEAGLEBONE BLACK SCRIPT
 Author: Patricia Nallin
 
 Release:
-18/july/2020
+30/may/2022
 """
 
-RELEASE_DATE = "18/july/2020"
+RELEASE_DATE = "30/may/2022"
 
 import logging
 from logging.handlers import RotatingFileHandler
