@@ -12,18 +12,18 @@ Release:
 
 RELEASE_DATE = "18/july/2020"
 
+import logging
+from logging.handlers import RotatingFileHandler
 import socket
 import time
 import sys
 import struct
 import threading
-import traceback
 import os.path
 import subprocess
 import datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.pardir,'common')))
-from constants_PRUserial485_bridge import *
-from functions_PRUserial485_bridge import *
+from consts import *
 from queue import Queue
 import PRUserial485 as _lib
 
@@ -38,21 +38,27 @@ connected_clients = {SERVER_PORT_RW:[], SERVER_PORT_GENERAL:[]}
 read_data = {}
 
 # Initialize PRUserial485 - may be reinitialized if needed
-_lib.PRUserial485_open(6,b'M')
+_lib.PRUserial485_open(3,b'M')
 
-# Initial message
-sys.stdout.write("Ethernet bridge for PRUserial485\n")
-sys.stdout.flush()
+global logger 
 
-
-def time_string():
+def time_string() -> str:
     return(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f") + " - ")
 
 
-def payload_length(payload):
+def payload_length(payload) -> bytes:
     """."""
     return(struct.pack("B", payload[0]) +
-           struct.pack(">I", (len(payload)-1)) + payload[1:])
+        struct.pack(">I", (len(payload)-1)) + payload[1:])
+
+def validate_answer(payload, sent: bytes = b"unknown command") -> bytes:
+    if payload == b'' or (not isinstance(payload, bytes) and not payload):
+        logger.error("Received empty response for {}".format(sent))
+        if not payload:
+            return (ANSWER_NOQUEUE)
+        return (ANSWER_ERR + payload)
+    else:
+        return (ANSWER_OK + payload)
 
 
 def processThread_general():
@@ -68,15 +74,15 @@ def processThread_general():
             baudrate = struct.unpack(">I", item[1][1:])[0]
             mode = item[1][:1]
             res = _lib.PRUserial485_open(baudrate,mode)
-            answer = (ANSWER_Ok + struct.pack("B", res))
+            answer = (ANSWER_OK + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_address):
             res = _lib.PRUserial485_address()
-            answer = (ANSWER_Ok + struct.pack("B", res))
+            answer = (ANSWER_OK + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_close):
             _lib.PRUserial485_close()
-            answer = (ANSWER_Ok)
+            answer = (ANSWER_OK)
 
         elif (item[0] == COMMAND_PRUserial485_curve):
             block = item[1][0]
@@ -85,50 +91,50 @@ def processThread_general():
             for curve in range (4):
                 curves.append([struct.unpack(">f", item[1][4*i + 1:4*i+4 + 1])[0] for i in range((curve*curve_size), (curve+1)*curve_size)])
             res = _lib.PRUserial485_curve(block, [curves[0], curves[1], curves[2], curves[3]])
-            answer = (ANSWER_Ok + struct.pack("B", res))
+            answer = (ANSWER_OK + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_set_curve_block):
             _lib.PRUserial485_set_curve_block(item[1][0])
-            answer = (ANSWER_Ok)
+            answer = (ANSWER_OK)
 
         elif (item[0] == COMMAND_PRUserial485_read_curve_block):
             res = _lib.PRUserial485_read_curve_block()
-            answer = (ANSWER_Ok +  struct.pack("B", res))
+            answer = (ANSWER_OK +  struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_set_curve_pointer):
             new_pointer = struct.unpack(">I", item[1])[0]
             _lib.PRUserial485_set_curve_pointer(new_pointer)
-            answer = (ANSWER_Ok)
+            answer = (ANSWER_OK)
 
         elif (item[0] == COMMAND_PRUserial485_read_curve_pointer):
             res = _lib.PRUserial485_read_curve_pointer()
-            answer = (ANSWER_Ok + struct.pack(">I", res))
+            answer = (ANSWER_OK + struct.pack(">I", res))
 
         elif (item[0] == COMMAND_PRUserial485_sync_start):
             sync_mode = item[1][0]
             delay = struct.unpack(">I", item[1][1:5])[0]
             sync_address = item[1][5]
             _lib.PRUserial485_sync_start(sync_mode, delay, sync_address)
-            answer = (ANSWER_Ok)
+            answer = (ANSWER_OK)
 
         elif (item[0] == COMMAND_PRUserial485_sync_stop):
             _lib.PRUserial485_sync_stop()
-            answer = (ANSWER_Ok)
+            answer = (ANSWER_OK)
 
         elif (item[0] == COMMAND_PRUserial485_sync_status):
             if _lib.PRUserial485_sync_status():
                 res = b'\x01'
             else:
                 res = b'\x00'
-            answer = (ANSWER_Ok + res)
+            answer = (ANSWER_OK + res)
 
         elif (item[0] == COMMAND_PRUserial485_read_pulse_count_sync):
             res = _lib.PRUserial485_read_pulse_count_sync()
-            answer = (ANSWER_Ok + struct.pack(">I", res))
+            answer = (ANSWER_OK + struct.pack(">I", res))
 
         elif (item[0] == COMMAND_PRUserial485_clear_pulse_count_sync):
             res = _lib.PRUserial485_clear_pulse_count_sync()
-            answer = (ANSWER_Ok + struct.pack("B", res))
+            answer = (ANSWER_OK + struct.pack("B", res))
 
         elif (item[0] == COMMAND_PRUserial485_version):
             try:
@@ -138,13 +144,13 @@ def processThread_general():
                     libversion = _lib.__version__()
                 except:
                     pass
-            answer = (ANSWER_Ok + libversion.encode())
+            answer = (ANSWER_OK + libversion.encode())
 
         elif (item[0] == COMMAND_PRUserial485_server_eth_version):
-            with open(version_file_path, 'r') as _f:
+            with open(VERSION_FILE_PATH, 'r') as _f:
                 server_version = _f.read().strip()
             server_version += ":" + subprocess.getoutput('git log --format=%h -1')
-            answer = (ANSWER_Ok + server_version.encode())
+            answer = (ANSWER_OK + server_version.encode())
 
 
         answer = item[0] + answer[1:]
@@ -165,20 +171,22 @@ def processThread_rw():
             timeout = struct.unpack(">f", item[1][:4])[0]
             data = item[1][4:]
             res = _lib.PRUserial485_write(data, timeout)
-            read_data[client] = _lib.PRUserial485_read()
-            answer = (ANSWER_Ok + struct.pack("B", res))
+            read = _lib.PRUserial485_read()
+
+            read_data[client] = read
+            answer = validate_answer(struct.pack("B", res), data)
 
         elif (item[0] == COMMAND_PRUserial485_read):
-            res = read_data[client]
-            answer = (ANSWER_Ok + res)
+            answer = validate_answer(read_data[client], b"read")
 
         elif (item[0] == COMMAND_PRUserial485_request):
             timeout = struct.unpack(">f", item[1][:4])[0]
             data = item[1][4:]
             res = _lib.PRUserial485_write(data, timeout)
-            answer = (ANSWER_Ok + _lib.PRUserial485_read())
+            read = _lib.PRUserial485_read()
 
-        answer = item[0] + answer[1:]
+            answer = validate_answer(read, data)
+        answer = item[0] + answer[0:]
         client.sendall(payload_length(answer))
 
 
@@ -211,8 +219,7 @@ def clientThread(client_connection, client_info, conn_port):
         else:
             connected_clients[conn_port].remove(client_info)
             read_data.pop(client_connection)
-            sys.stdout.write(time_string() + "Client {}:{} disconnected on port {}.\n".format(client_info[0], client_info[1], conn_port))
-            sys.stdout.flush()
+            logging.info(time_string() + "Client {}:{} disconnected on port {}.".format(client_info[0], client_info[1], conn_port))
             break
 
 
@@ -226,16 +233,14 @@ def connectionThread(conn_port):
             server_socket.bind(("", conn_port))
             server_socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
             server_socket.listen(5)
-            sys.stdout.write(time_string() + "TCP/IP server on port {} started and waiting for connection\n".format(conn_port))
-            sys.stdout.flush()
+            logging.info("TCP/IP server on port {} started and waiting for connection".format(conn_port))
 
             while(True):
                 # Wait for client connection
                 connection, client_info = server_socket.accept()
 
                 # New connection
-                sys.stdout.write(time_string() + "Port {}: client {}:{} connected\n".format(conn_port, client_info[0], client_info[1]))
-                sys.stdout.flush()
+                logging.info(time_string() + "Port {}: client {}:{} connected".format(conn_port, client_info[0], client_info[1]))
 
                 new_client_thread = threading.Thread(target = clientThread, args = [connection, client_info, conn_port])
                 new_client_thread.setDaemon(True)
@@ -244,14 +249,11 @@ def connectionThread(conn_port):
 
         except Exception:
             server_socket.close()
-            sys.stdout.write(time_string() + "Connection problem on port {}. Error message:\n\n".format(conn_port))
-            traceback.print_exc(file = sys.stdout)
-            sys.stdout.write("\n")
-            sys.stdout.flush()
+            logging.error("Connection problem on port {}: ", exc_info=True)
             time.sleep(5)
 
 
-def daemon_server(daemon_port):
+def daemon_server():
     while (True):
         try:
             # Opens a Daemon TCP/IP socket - To signalize whether server is available
@@ -259,18 +261,14 @@ def daemon_server(daemon_port):
             daemon_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             daemon_socket.bind(("", DAEMON_PORT))
             daemon_socket.listen(1)
-            sys.stdout.write(time_string() + "TCP/IP daemon server on port {} started\n".format(DAEMON_PORT))
-            sys.stdout.flush()
+            logging.info(time_string() + "TCP/IP daemon server on port {} started\n".format(DAEMON_PORT))
 
             while(True):
-                connection, client_info = daemon_socket.accept()
+                daemon_socket.accept()
 
         except Exception:
             daemon_socket.close()
-            sys.stdout.write(time_string() + "Connection problem on daemon port {}. Error message:\n\n".format(DAEMON_PORT))
-            traceback.print_exc(file = sys.stdout)
-            sys.stdout.write("\n")
-            sys.stdout.flush()
+            logging.error("Connection problem on daemon port {}: ", exc_info=True)
             time.sleep(1)
 
 
@@ -278,11 +276,21 @@ def daemon_server(daemon_port):
 
 
 if (__name__ == '__main__'):
+    logger = logging.getLogger("eth-bridge")
+    formatter = logging.Formatter(
+    "%(asctime)-15s - (%(name)s) %(levelname)s - %(message)s", datefmt="%d/%m/%Y %H:%M:%S"
+    )
 
-    sys.stdout.write("----- TCP/IP SERVER FOR PRUSERIAL485 -----\n")
-    sys.stdout.write("----- Release date: {} -----\n".format(RELEASE_DATE))
-    sys.stdout.write(time_string() + "Initialization.\n")
-    sys.stdout.flush()
+    file_handler = RotatingFileHandler(LOG_FILE_PATH, maxBytes=15000000, backupCount=5)
+    file_handler.setFormatter(formatter)
+
+    if not logger.hasHandlers():
+        logger.addHandler(file_handler)
+
+    logger.setLevel(logging.INFO)
+
+    logger.info("----- TCP/IP SERVER FOR PRUSERIAL485 (Ethernet bridge for PRUserial485) -----")
+    logger.info("----- Release date: {} -----".format(RELEASE_DATE))
 
     queue_general = Queue()
     queue_rw = Queue()

@@ -28,21 +28,21 @@ Client side contents are in folder **client**, and will be needed on host comput
 In order to have this module on your system, enter the project folder and install it:
 
  - `cd client/`
+ - `python-sirius -m pip install .` or
  - `sudo python-sirius setup.py install`
 <br>
 
-#### Using the python module
-In your python code, you can just:
+#### Using the Python module
+In your Python code, you can just:
 ```python
 import PRUserial485
 ```
 It is not needed to copy any library files to your project.
 Package **siriuspy** is needed to get the server IP on the beaglebone
 
-Before starting to use the library the name of the beaglebone to connect to
-needs to be defined invoking
+Before use, the Beaglebone IP must be defined on declaration
 ```python
-PRUserial485.set_beaglebone_ip(bbbname=None)
+PRUserial485.EthBridgeClient("10.11.11.11")
 ```
 
 
