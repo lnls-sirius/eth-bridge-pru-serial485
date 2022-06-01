@@ -59,23 +59,25 @@ class ConstSyncMode:
 class _EthBridgeClientCommonInterface:
     """."""
 
+    pack_float = struct.Struct(">f").pack
+
     def __init__(self, ip_address):
         """."""
         # IP
-        self._bbb_ip = self._check_ip_address(ip_address)
-        # self._bbb_ip = ip_address
+        # self._bbb_ip = self._check_ip_address(ip_address)
+        self._bbb_ip = ip_address
         self.socket = None
 
-    def open(self, baudrate=6, mode=b"M"):
+    def open(self, baudrate: int = 6, mode: bytes = b"M") -> int:
         """Procedimento de inicialização da PRU."""
         if (mode in _c.AVAILABLE_MODES) and (baudrate in _c.AVAILABLE_BAUDRATES):
             payload = _c.COMMAND_PRUserial485_open + mode + struct.pack(">I", baudrate)
             command, payload_recv = self._send_communication_data(payload)
 
             if command == ord(_c.COMMAND_PRUserial485_open) and len(payload_recv) == 1:
-                return ord(payload_recv)
+                return payload_recv[0]
             else:
-                return None
+                raise ValueError("Failed to open connection, invalid reply received: {}".format(payload_recv))
 
     def close(self):
         """Encerra a PRU."""
@@ -83,7 +85,7 @@ class _EthBridgeClientCommonInterface:
         payload = _c.COMMAND_PRUserial485_close
         self._send_communication_data(payload)
 
-    def read(self):
+    def read(self) -> list:
         """Recebe dados através da interface serial."""
         # Payload: none
         payload = _c.COMMAND_PRUserial485_read
@@ -96,39 +98,35 @@ class _EthBridgeClientCommonInterface:
 
         data = [chr(i) for i in payload_recv[1:]]
 
-        if command == ord(_c.COMMAND_PRUserial485_read):
+        if command == _c.COMMAND_PRUserial485_read[0]:
             return data
         else:
             raise ValueError(
-                "Unexpected command {} returned ({} expected)".format(ord(_c.COMMAND_PRUserial485_read), command)
+                "Unexpected command {} returned ({} expected)".format(_c.COMMAND_PRUserial485_read[0], command)
             )
 
-    def write(self, data=None, timeout=2):
+    def write(self, data=[], timeout: float = 2) -> int:
         """Envia dados através da interface serial."""
         # Payload: TIMEOUT (4 bytes) + DATA (len(DATA) bytes)
-        if data is None:
-            data = []
-        payload = _c.COMMAND_PRUserial485_write + struct.pack(">f", timeout)
-        payload += bytearray([ord(i) for i in data])
+        payload = _c.COMMAND_PRUserial485_write + self.pack_float(timeout)
+        payload += bytearray(map(ord, data))
         command, payload_recv = self._send_communication_data(payload)
 
         if not payload_recv or payload_recv[0] != _c.ANSWER_OK[0]:
             raise TimeoutError("Timeout while waiting for power supply reply")
 
-        if command == ord(_c.COMMAND_PRUserial485_write) and len(payload_recv) == 2:
-            return ord(payload_recv[1:])
+        if command == _c.COMMAND_PRUserial485_write[0] and len(payload_recv) == 2:
+            return payload_recv[1]
         else:
             raise ValueError(
-                "Unexpected command {} returned ({} expected)".format(ord(_c.COMMAND_PRUserial485_write), command)
+                "Unexpected command {} returned ({} expected)".format(_c.COMMAND_PRUserial485_write[0], command)
             )
 
-    def request(self, data=None, timeout=2):
+    def request(self, data=[], timeout: float = 2) -> list:
         """Envia dados através da interface serial e ja recebe a resposta."""
         # Payload: TIMEOUT (4 bytes) + DATA (len(DATA) bytes)
-        if data is None:
-            data = []
-        payload = _c.COMMAND_PRUserial485_request + struct.pack(">f", timeout)
-        payload += bytearray([ord(i) for i in data])
+        payload = _c.COMMAND_PRUserial485_request + self.pack_float(timeout)
+        payload += bytearray(map(ord, data))
         command, payload_recv = self._send_communication_data(payload)
 
         if not payload_recv or payload_recv[0] != _c.ANSWER_OK[0]:
@@ -136,11 +134,11 @@ class _EthBridgeClientCommonInterface:
 
         data = [chr(i) for i in payload_recv[1:]]
 
-        if command == ord(_c.COMMAND_PRUserial485_request):
+        if command == _c.COMMAND_PRUserial485_request[0]:
             return data
         else:
             raise ValueError(
-                "Unexpected command {} returned ({} expected)".format(ord(_c.COMMAND_PRUserial485_request), command)
+                "Unexpected command {} returned ({} expected)".format(_c.COMMAND_PRUserial485_request[0], command)
             )
 
     def version(self):

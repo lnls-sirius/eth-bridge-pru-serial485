@@ -38,7 +38,7 @@ connected_clients = {SERVER_PORT_RW:[], SERVER_PORT_GENERAL:[]}
 read_data = {}
 
 # Initialize PRUserial485 - may be reinitialized if needed
-_lib.PRUserial485_open(3,b'M')
+_lib.PRUserial485_open(6,b'M')
 
 global logger 
 
@@ -51,8 +51,8 @@ def payload_length(payload) -> bytes:
     return(struct.pack("B", payload[0]) +
         struct.pack(">I", (len(payload)-1)) + payload[1:])
 
-def validate_answer(payload, sent: bytes = b"unknown command") -> bytes:
-    if payload == b'' or (not isinstance(payload, bytes) and not payload):
+def validate_answer(payload: bytes, sent: bytes = b"unknown command") -> bytes:
+    if payload == b'' or not isinstance(payload, bytes):
         logger.error("Received empty response for {}".format(sent))
         if not payload:
             return (ANSWER_NOQUEUE)
@@ -159,35 +159,35 @@ def processThread_general():
 
 def processThread_rw():
     global read_data
+    unpack_float = struct.Struct('>f').unpack
+    pack_unsigned_byte = struct.Struct("B").pack
+
     while (True):
         # Get next operation
         item = queue_rw.get(block = True)
-        item[0] = struct.pack("B",item[0])
+        item[0] = pack_unsigned_byte(item[0])
         client = item[2]
         answer = b''
 
         # Verification and implementation
         if (item[0] == COMMAND_PRUserial485_write):
-            timeout = struct.unpack(">f", item[1][:4])[0]
+            timeout = unpack_float(item[1][:4])[0]
             data = item[1][4:]
             res = _lib.PRUserial485_write(data, timeout)
-            read = _lib.PRUserial485_read()
 
-            read_data[client] = read
-            answer = validate_answer(struct.pack("B", res), data)
+            read_data[client] = _lib.PRUserial485_read()
+            answer = validate_answer(pack_unsigned_byte(res), data)
 
         elif (item[0] == COMMAND_PRUserial485_read):
             answer = validate_answer(read_data[client], b"read")
 
         elif (item[0] == COMMAND_PRUserial485_request):
-            timeout = struct.unpack(">f", item[1][:4])[0]
+            timeout = unpack_float(item[1][:4])[0]
             data = item[1][4:]
             res = _lib.PRUserial485_write(data, timeout)
-            read = _lib.PRUserial485_read()
 
-            answer = validate_answer(read, data)
-        answer = item[0] + answer[0:]
-        client.sendall(payload_length(answer))
+            answer = validate_answer(_lib.PRUserial485_read(), data)
+        client.sendall(payload_length(item[0]+answer))
 
 
 def clientThread(client_connection, client_info, conn_port):
