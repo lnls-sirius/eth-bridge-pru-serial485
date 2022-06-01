@@ -64,8 +64,8 @@ class _EthBridgeClientCommonInterface:
     def __init__(self, ip_address):
         """."""
         # IP
-        # self._bbb_ip = self._check_ip_address(ip_address)
-        self._bbb_ip = ip_address
+        self._bbb_ip = self._check_ip_address(ip_address)
+        #self._bbb_ip = ip_address
         self.socket = None
 
     def open(self, baudrate: int = 6, mode: bytes = b"M") -> int:
