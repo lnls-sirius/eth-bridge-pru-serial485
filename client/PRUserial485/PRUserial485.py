@@ -160,8 +160,9 @@ class _EthBridgeClientCommonInterface:
     @staticmethod
     def _check_ip_address(ip_address):
         """Define beaglebone IP address."""
-        if (ip_address.startswith('10.128') or \
-                ip_address.startswith('10.0.38')) and \
+        if (ip_address.startswith('10.128') or
+                ip_address.startswith('10.0.38') or
+                ip_address.startswith('10.0.6')) and \
                 len(ip_address.split('.')) == 4:
             return ip_address
         else:
