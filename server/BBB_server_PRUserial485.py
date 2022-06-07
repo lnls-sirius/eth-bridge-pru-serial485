@@ -12,6 +12,7 @@ Release:
 
 RELEASE_DATE = "18/july/2020"
 
+import argparse
 import socket
 import time
 import sys
@@ -26,6 +27,7 @@ from constants_PRUserial485_bridge import *
 from functions_PRUserial485_bridge import *
 from queue import Queue
 import PRUserial485 as _lib
+import posix_ipc as _posix_ipc
 
 # TCP port for PRUserial485 bridge
 SERVER_PORT_RW = 5000
@@ -151,6 +153,7 @@ def processThread_general():
         client.sendall(payload_length(answer))
 
 
+
 def processThread_rw():
     global read_data
     while (True):
@@ -182,6 +185,65 @@ def processThread_rw():
         client.sendall(payload_length(answer))
 
 
+
+def processThread_ff():
+    global read_data
+    writeData = _posix_ipc.MessageQueue("/cmd_ff")
+    readData = _posix_ipc.MessageQueue("/reply_ff")
+    semaphoreFF = _posix_ipc.Semaphore("/semaphore_ff", _posix_ipc.O_CREAT, initial_value=1)
+    ffMode = 1 #by default = 1 (Enabled)
+
+    while (True):
+        # Get next operation
+        item = queue_rw.get(block = True)
+        item[0] = struct.pack("B",item[0])
+        client = item[2]
+        answer = b''
+
+        # Verification and implementation
+
+        if (item[0] == COMMAND_PRUserial485_write):
+            timeout = struct.unpack(">f", item[1][:4])[0]
+            data = item[1][4:]
+            writeData.send(data)
+            read_data[client] = readData.receive()[0]
+            answer = (ANSWER_Ok + struct.pack("B", 0))
+
+        elif (item[0] == COMMAND_PRUserial485_read):
+            res = read_data[client]
+            answer = (ANSWER_Ok + res)
+
+        elif (item[0] == COMMAND_PRUserial485_request):
+            timeout = struct.unpack(">f", item[1][:4])[0]
+            data = item[1][4:]
+            writeData.send(data)
+            res = readData.receive()[0]
+            answer = (ANSWER_Ok + res)
+
+
+        elif (item[0] == COMMAND_FeedForward_setMode):
+            if ffMode == item[1][0]:
+                continue
+            else:
+                if item[1][0]:
+                    semaphoreFF.release()
+                else:
+                    semaphoreFF.acquire()
+                ffMode = item[1][0]
+            answer = (ANSWER_Ok)
+
+
+        elif (item[0] == COMMAND_FeedForward_readMode):
+            if ffMode:
+                res = b'\x01'
+            else:
+                res = b'\x00'
+            answer = (ANSWER_Ok + res)
+
+        answer = item[0] + answer[1:]
+        client.sendall(payload_length(answer))
+
+
 def clientThread(client_connection, client_info, conn_port):
     global connected_clients, read_data
     connected_clients[conn_port].append(client_info)
@@ -203,7 +265,11 @@ def clientThread(client_connection, client_info, conn_port):
 
             # Put operation in Queue
             if len(message) == data_size:
-                if command == ord(COMMAND_PRUserial485_write) or command == ord(COMMAND_PRUserial485_read) or command == ord(COMMAND_PRUserial485_request):
+                if command == ord(COMMAND_PRUserial485_write) or \
+                        command == ord(COMMAND_PRUserial485_read) or \
+                            command == ord(COMMAND_PRUserial485_request) or \
+                                command == ord(COMMAND_FeedForward_setMode) or \
+                                    command == ord(COMMAND_FeedForward_readMode):
                     queue_rw.put([command, message, client_connection])
                 else:
                     queue_general.put([command, message, client_connection])
@@ -279,8 +345,13 @@ def daemon_server(daemon_port):
 
 if (__name__ == '__main__'):
 
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('-m', '--mode', dest='mode', default='normal', choices=['normal', 'feedforward'])
+    args = parser.parse_args()
+
     sys.stdout.write("----- TCP/IP SERVER FOR PRUSERIAL485 -----\n")
     sys.stdout.write("----- Release date: {} -----\n".format(RELEASE_DATE))
+    sys.stdout.write("----- Mode: {} -----\n".format(args.mode))
     sys.stdout.write(time_string() + "Initialization.\n")
     sys.stdout.flush()
 
@@ -292,7 +363,10 @@ if (__name__ == '__main__'):
     process_general.setDaemon(True)
     process_general.start()
 
-    process_rw = threading.Thread(target = processThread_rw)
+    if(args.mode == "feedforward"):
+        process_rw = threading.Thread(target = processThread_ff)
+    elif(args.mode == 'normal'):
+        process_rw = threading.Thread(target = processThread_rw)
     process_rw.setDaemon(True)
     process_rw.start()
 

@@ -24,6 +24,9 @@ COMMAND_PRUserial485_clear_pulse_count_sync = b'\x0e'
 COMMAND_PRUserial485_version = b'\x0f'
 COMMAND_PRUserial485_server_eth_version = b'\x10'
 
+# FeedForward operation mode
+COMMAND_FeedForward_setMode = b'\x12'
+COMMAND_FeedForward_readMode = b'\x13'
 
 
 # Terminator
