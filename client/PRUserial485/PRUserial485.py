@@ -485,7 +485,7 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
         try:
             self.socket.sendall(datalen)
         except socket.timeout:
-            raise TimeoutError("Timeout while communicating with socket")  # raise same exception
+            raise
         except Exception:
             self.socket = None
             for _ in range(3):
@@ -495,7 +495,7 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
                     self.socket.sendall(datalen)
                     break
                 except socket.timeout:
-                    raise TimeoutError("Timeout while communicating with socket")  # raise same exception
+                    raise 
                 except Exception:
                     self.socket = None
             else:
@@ -505,7 +505,7 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
         try:
             answer = self.socket.recv(5)
         except socket.timeout:
-            raise TimeoutError("Timeout while communicating with socket")  # raise same exception
+            raise
         except ConnectionResetError:
             # This except might happen when server is suddenly stopped
             answer = []
@@ -523,7 +523,7 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
                     payload += self.socket.recv(4096, socket.MSG_WAITALL)
                 payload += self.socket.recv(int(data_size % 4096), socket.MSG_WAITALL)
             except socket.timeout:
-                raise TimeoutError("Timeout while communicating with socket")  # raise same exception
+                raise
             except ConnectionResetError:
                 # This except might happen when server is suddenly stopped
                 return command_recv, payload
