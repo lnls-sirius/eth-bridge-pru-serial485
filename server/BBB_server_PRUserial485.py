@@ -219,7 +219,7 @@ def clientThread(client_connection, client_info, conn_port):
         else:
             connected_clients[conn_port].remove(client_info)
             read_data.pop(client_connection)
-            logging.info(time_string() + "Client {}:{} disconnected on port {}.".format(client_info[0], client_info[1], conn_port))
+            logger.info(time_string() + "Client {}:{} disconnected on port {}.".format(client_info[0], client_info[1], conn_port))
             break
 
 
@@ -233,14 +233,14 @@ def connectionThread(conn_port):
             server_socket.bind(("", conn_port))
             server_socket.setsockopt(socket.SOL_TCP, socket.TCP_NODELAY, 1)
             server_socket.listen(5)
-            logging.info("TCP/IP server on port {} started and waiting for connection".format(conn_port))
+            logger.info("TCP/IP server on port {} started and waiting for connection".format(conn_port))
 
             while(True):
                 # Wait for client connection
                 connection, client_info = server_socket.accept()
 
                 # New connection
-                logging.info(time_string() + "Port {}: client {}:{} connected".format(conn_port, client_info[0], client_info[1]))
+                logger.info(time_string() + "Port {}: client {}:{} connected".format(conn_port, client_info[0], client_info[1]))
 
                 new_client_thread = threading.Thread(target = clientThread, args = [connection, client_info, conn_port])
                 new_client_thread.setDaemon(True)
@@ -249,7 +249,7 @@ def connectionThread(conn_port):
 
         except Exception:
             server_socket.close()
-            logging.error("Connection problem on port {}: ", exc_info=True)
+            logger.error("Connection problem on port {}: ", exc_info=True)
             time.sleep(5)
 
 
@@ -261,14 +261,14 @@ def daemon_server():
             daemon_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             daemon_socket.bind(("", DAEMON_PORT))
             daemon_socket.listen(1)
-            logging.info(time_string() + "TCP/IP daemon server on port {} started\n".format(DAEMON_PORT))
+            logger.info(time_string() + "TCP/IP daemon server on port {} started\n".format(DAEMON_PORT))
 
             while(True):
                 daemon_socket.accept()
 
         except Exception:
             daemon_socket.close()
-            logging.error("Connection problem on daemon port {}: ", exc_info=True)
+            logger.error("Connection problem on daemon port {}: ", exc_info=True)
             time.sleep(1)
 
 
