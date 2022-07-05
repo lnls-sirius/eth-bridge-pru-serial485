@@ -1,7 +1,6 @@
 """Util functions."""
 
 import sys
-import importlib
 
 #if importlib.find_loader('siriuspy'):
 #    from siriuspy.csdevice.util import get_device_2_ioc_ip

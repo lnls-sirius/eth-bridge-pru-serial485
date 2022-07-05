@@ -1,6 +1,5 @@
 """PRUserial485 client module for BBB ethernet bridge"""
 
-
 import os as _os
 from .PRUserial485 import *
 
