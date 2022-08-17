@@ -152,6 +152,10 @@ def processThread_general():
             server_version += ":" + subprocess.getoutput('git log --format=%h -1')
             answer = (ANSWER_OK + server_version.encode())
 
+        elif (item[0] == COMMAND_PRUserial485_flush):
+            _lib.PRUserial485_read_flush()
+            anser = (ANSWER_OK)
+
 
         answer = item[0] + answer[1:]
         client.sendall(payload_length(answer))

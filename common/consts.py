@@ -5,6 +5,7 @@ COMMAND_PRUserial485_close = b'\x02'
 COMMAND_PRUserial485_write = b'\x03'
 COMMAND_PRUserial485_read = b'\x04'
 COMMAND_PRUserial485_request = b'\x11'
+COMMAND_PRUserial485_flush = b'\x12'
 
 # Curves
 COMMAND_PRUserial485_curve = b'\x05'
