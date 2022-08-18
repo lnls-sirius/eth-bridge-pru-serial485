@@ -154,7 +154,7 @@ def processThread_general():
 
         elif (item[0] == COMMAND_PRUserial485_flush):
             _lib.PRUserial485_read_flush()
-            anser = (ANSWER_OK)
+            answer = (ANSWER_OK)
 
 
         answer = item[0] + answer[1:]

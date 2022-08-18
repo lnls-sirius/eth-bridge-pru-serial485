@@ -181,6 +181,11 @@ class _EthBridgeClientCommonInterface:
         else:
             return None
 
+    def flush_buffer(self):
+        """Flushes output buffer"""
+        payload = _c.COMMAND_PRUserial485_flush
+        command, payload_recv = self._send_communication_data(payload)
+
     # --- aux. methods ---
     @staticmethod
     def _check_ip_address(ip_address):
