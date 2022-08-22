@@ -10,7 +10,7 @@ Release:
 30/may/2022
 """
 
-RELEASE_DATE = "30/may/2022"
+RELEASE_DATE = "22/aug/2022"
 
 import logging
 from logging.handlers import RotatingFileHandler
