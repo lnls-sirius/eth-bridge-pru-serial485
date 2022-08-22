@@ -65,5 +65,5 @@ AVAILABLE_SYNC_MODES = [0x51, 0x5E, 0xC1, 0xCE, 0x5B]
 
 # Location
 SERVER_FILES_PATH = "/root/eth-bridge-pru-serial485/server"
-VERSION_FILE_PATH = "/root/eth-bridge-pru-serial485/client/VERSION"
+VERSION_FILE_PATH = "/root/eth-bridge-pru-serial485/common/VERSION"
 LOG_FILE_PATH = "/var/log/eth-bridge.log"
