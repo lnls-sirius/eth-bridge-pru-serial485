@@ -7,10 +7,10 @@ SERVER SIDE - BEAGLEBONE BLACK SCRIPT
 Author: Patricia Nallin
 
 Release:
-30/may/2022
+22/aug/2022
 """
 
-RELEASE_DATE = "30/may/2022"
+RELEASE_DATE = "22/aug/2022"
 
 import logging
 from logging.handlers import RotatingFileHandler
@@ -151,6 +151,10 @@ def processThread_general():
                 server_version = _f.read().strip()
             server_version += ":" + subprocess.getoutput('git log --format=%h -1')
             answer = (ANSWER_OK + server_version.encode())
+
+        elif (item[0] == COMMAND_PRUserial485_flush):
+            _lib.PRUserial485_read_flush()
+            answer = (ANSWER_OK)
 
 
         answer = item[0] + answer[1:]

@@ -2,7 +2,7 @@
 
 import sys
 
-#if importlib.find_loader('siriuspy'):
+# if importlib.find_loader('siriuspy'):
 #    from siriuspy.csdevice.util import get_device_2_ioc_ip
 
 
@@ -15,4 +15,4 @@ def find_BBB_IP(BBB_NAME):
         pstr = "Beaglebone Hostname '{}' is not in the list\n".format(BBB_NAME)
         sys.stdout.write(pstr)
         sys.stdout.flush()
-        return ''
+        return ""
