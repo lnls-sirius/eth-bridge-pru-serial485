@@ -35,7 +35,31 @@ Commands/replies for interfacing PRUserial485 with eth-bridge are byte-structure
 Payload carries function arguments/returns.
 
 
-Example:
+
+
+----
+### Write/Read Functions - Port 5000
+
+| Function       | Code         | Payload       | Total payload length (bytes)
+| :-            | :-            | :-            | :-            |
+| `PRUserial485_write(timeout, bytes)`<br> *Send message through RS485 network*        | `\x03`| **- timeout [ms]:** float - 4 bytes - timeout for waiting to start receiving a reply <br> **- bytes:** uint8 - n bytes - message to be sent out through RS485| 4 + n |
+| `PRUserial485_read()`<br> *Read RS485 input receive buffer*        | `\x04`| ---- | 0 |
+| `PRUserial485_request(timeout, bytes)`<br> *Send message through RS485 network and read input buffer after receiving the reply*        | `\x11`| **- timeout [ms]:** float - 4 bytes - timeout for waiting to start receiving a reply <br> **- bytes:** uint8 - n bytes - message to be sent out through RS485| 4 + n |
+
+----
+
+### General Functions - Port 6000
+
+| Function       | Code         | Payload       | Total payload length (bytes)
+| :-            | :-            | :-            | :-            |
+| `PRUserial485_open(baudrate, mode)`<br>*Open and configure PRUserial485 serial interface and memory mapping* | \x00 | **- baudrate:** uint16 - 2 bytes - baudrate for serial interface initialization <br> **- mode:** char/uint8 - 1 byte - mode for RS485 line. b'M' for master or b'S' for slave mode | 3 |
+| TO DO | TODO | TODO | TODO |
+| ... | ... | ... | ... |
+
+
+
+
+### Example:
 - Function: PRUserial485_open(6, b'M')
 - eth-bridge code: \x00
 - Arguments (3 bytes): 
@@ -56,25 +80,7 @@ Reply from eth-bridge for PRUserial485_open (1 byte):
 - **Payload:** \x00 (PRUserial485_open return)
 - **Reply command:** `\x00\x00\x00\x00\x01\x00`
 
-
-
-
-### Write/read Functions - Port 5000
-
-| Function       | Code         | Payload       | Total payload length (bytes)
-| :-            | :-            | :-            | :-            |
-| `PRUserial485_write(timeout, bytes)`<br> *Send message through RS485 network*        | `\x03`| **timeout [ms]:** float - 4 bytes - timeout for waiting to start receiving a reply <br> **bytes:** uint8 - n bytes - message to be sent out through RS485| 4 + n |
-| `PRUserial485_read()`<br> *Read RS485 input receive buffer*        | `\x04`| ---- | 0 |
-| `PRUserial485_request(timeout, bytes)`<br> *Send message through RS485 network and read input buffer after receiving the reply*        | `\x11`| **timeout [ms]:** float - 4 bytes - timeout for waiting to start receiving a reply <br> **bytes:** uint8 - n bytes - message to be sent out through RS485| 4 + n |
-
-
-### General Functions - Port 6000
-
-| Function       | Code         | Payload       | Total payload length (bytes)
-| :-            | :-            | :-            | :-            |
-| TO DO | TODO | TODO | TODO |
-
-
+----
 
 ### FeedForward Functions - Port 5050
 
@@ -92,3 +98,25 @@ Reply from eth-bridge for PRUserial485_open (1 byte):
 
 
 
+### Example:
+Configure FF for IVU type, with only one correction table considering maximum gap as 12 mm.
+- Function: **PRUserial485_ff_configure(id_type = 1, n_tables = 1, max_range = 12000.0)**
+- eth-bridge code: \x12
+- Arguments (6 bytes):
+    - id_type: uint8 (\x01 = 1)
+    - n_tables: uint8 (\x01 = 1)
+    - max_range: float (\x46\x3B\x80\x00 = 12000.0)
+
+
+Mapping into a eth-bridge command:
+- **Function code:** \x12
+- **Payload size:** \x00\x00\x00\x06
+- **Payload:** \x01 + \x01 + \x46\x3B\x80\x00
+- **Function command (CLIENT -> SERVER):** `\x12\x00\x00\x00\x06\x01\x01\x46\x3B\x80\x00`
+
+
+Reply from eth-bridge for PRUserial485_ff_configure (1 byte):
+- **Function code:** \x00
+- **Payload size:** \x00\x00\x00\x01
+- **Payload:** \x00 (PRUserial485_ff_configure return)
+- **Reply command (SERVER -> CLIENT):** `\x00\x00\x00\x00\x01\x00`
