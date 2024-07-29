@@ -24,6 +24,17 @@ COMMAND_PRUserial485_clear_pulse_count_sync = b'\x0e'
 COMMAND_PRUserial485_version = b'\x0f'
 COMMAND_PRUserial485_server_eth_version = b'\x10'
 
+# FeedForward operation mode
+COMMAND_FeedForward_configure = b'\x12'
+COMMAND_FeedForward_set_mode = b'\x13'
+COMMAND_FeedForward_read_mode = b'\x14'
+COMMAND_FeedForward_load_table = b'\x15'
+COMMAND_FeedForward_read_table = b'\x16'
+COMMAND_FeedForward_current_table = b'\x17'
+COMMAND_FeedForward_current_pointer = b'\x18'
+COMMAND_FeedForward_get_table_size = b'\x19'            
+COMMAND_FeedForward_get_absolute_position = b'\x1a'     
+
 
 
 # Terminator
@@ -55,11 +66,57 @@ PRUserial485_CommandName = {    COMMAND_PRUserial485_open : "PRUserial485_open",
                                 COMMAND_PRUserial485_clear_pulse_count_sync : "PRUserial485_clear_pulse_count_sync"
 }
 
+# Grouping commands
+RW_COMMANDS = [
+    COMMAND_PRUserial485_write,
+    COMMAND_PRUserial485_read,
+    COMMAND_PRUserial485_request
+    ]
+
+GENERAL_COMMANDS = [
+    COMMAND_PRUserial485_open,
+    COMMAND_PRUserial485_address,
+    COMMAND_PRUserial485_close,
+    COMMAND_PRUserial485_curve,
+    COMMAND_PRUserial485_set_curve_block,
+    COMMAND_PRUserial485_read_curve_block,
+    COMMAND_PRUserial485_set_curve_pointer,
+    COMMAND_PRUserial485_read_curve_pointer,
+    COMMAND_PRUserial485_sync_start,
+    COMMAND_PRUserial485_sync_stop,
+    COMMAND_PRUserial485_sync_status,
+    COMMAND_PRUserial485_read_pulse_count_sync,
+    COMMAND_PRUserial485_clear_pulse_count_sync,
+    COMMAND_PRUserial485_version,
+    COMMAND_PRUserial485_server_eth_version
+    ]
+
+FF_COMMANDS = [
+    COMMAND_FeedForward_configure,              # ID Type, number of tables/polarizations, ID max range [um]
+    COMMAND_FeedForward_set_mode,               # Enable/Disable
+    COMMAND_FeedForward_read_mode,              # Enabled/Disabled
+    COMMAND_FeedForward_load_table,             # Table number + [[t1],[t2],[t3],[t4]]
+    COMMAND_FeedForward_read_table,             # Table number + [[t1],[t2],[t3],[t4]]
+    COMMAND_FeedForward_current_table,
+    COMMAND_FeedForward_current_pointer,
+    COMMAND_FeedForward_get_table_size,         # Number of points: one table, one power supply
+    COMMAND_FeedForward_get_absolute_position   # [um]
+]
+
 # Checking parameters
-AVAILABLE_BAUDRATES = [9600, 14400, 19200, 38400, 57600, 115200, 6,10, 12]
+AVAILABLE_BAUDRATES = [9600, 14400, 19200, 38400, 57600, 115200, 6, 10, 12]
 AVAILABLE_MODES = [b'M', b'S']
 AVAILABLE_CURVE_BLOCKS = [0, 1, 2, 3]
 AVAILABLE_SYNC_MODES = [0x51, 0x5e, 0xc1, 0xce, 0x5b]
+
+
+# FeedForward options
+FF_DELTA_ID_TYPE   = 0
+FF_IVU_ID_TYPE     = 1
+FF_VPU_ID_TYPE     = 2
+FF_DELTA_MAX_RANGE = 26000.0 # [um]
+FF_IVU_MAX_RANGE   = 22000.0 # [um]
+FF_VPU_MAX_RANGE   = 20000.0 # [um]
 
 
 # Location
