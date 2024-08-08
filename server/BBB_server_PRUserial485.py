@@ -190,7 +190,6 @@ def processThread_rw():
             timeout = unpack_float(item[1][:4])[0]
             data = item[1][4:]
             res = _lib.PRUserial485_write(data, timeout)
-
             answer = validate_answer(_lib.PRUserial485_read(), data)
         client.sendall(payload_length(item[0]+answer))
 
@@ -223,7 +222,7 @@ def processThread_ff():
                 _lib.PRUserial485_ff_load_table(previous_conf[key]["tableid"], tables)
                                                       
                 logger.info("[FF] FF table #{} loaded - {} points interpolated into {} points".format(previous_conf[key]["tableid"], len(previous_conf[key]["ps1"]), cfg_tsize))
-
+        _lib.PRUserial485_ff_enable()
 
     # ------------------------------------
     # ----- Running thread
