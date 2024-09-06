@@ -321,6 +321,16 @@ def processThread_ff():
             pos = _lib.PRUserial485_ff_read_current_position()
             answer = struct.pack(">f", float(pos))
 
+        elif (item[0] == COMMAND_FeedForward_read_flags):
+            ''' OK '''
+            answer = struct.pack("B", _lib.PRUserial485_ff_read_flags())
+
+        elif (item[0] == COMMAND_FeedForward_clear_flags):
+            ''' OK '''
+            _lib.PRUserial485_ff_clear_flags()
+            answer = (ANSWER_OK)
+            
+
         if client is not "InitConfig":
             client.sendall(payload_length(item[0]+answer))
 
@@ -333,7 +343,6 @@ def clientThread(client_connection, client_info, conn_port):
     while (True):
         # Message header - Operation command (1 byte) + data size (4 bytes)
         data = client_connection.recv(5)
-        print(data)
 
         if(len(data) == 5):
             command = data[0]
@@ -484,6 +493,7 @@ if (__name__ == '__main__'):
     #daemon_thread = threading.Thread(target = daemon_server, args = [DAEMON_PORT])
     #daemon_thread.setDaemon(True)
     #daemon_thread.start()
+
 
     while (True):
         time.sleep(10)

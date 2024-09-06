@@ -33,7 +33,9 @@ COMMAND_FeedForward_read_table = b'\x16'
 COMMAND_FeedForward_current_table = b'\x17'
 COMMAND_FeedForward_current_pointer = b'\x18'
 COMMAND_FeedForward_get_table_size = b'\x19'            
-COMMAND_FeedForward_get_absolute_position = b'\x1a'     
+COMMAND_FeedForward_get_absolute_position = b'\x1a'
+COMMAND_FeedForward_read_flags = b'\x1b'   
+COMMAND_FeedForward_clear_flags = b'\x1c'  
 
 
 

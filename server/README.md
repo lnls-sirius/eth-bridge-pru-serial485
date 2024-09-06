@@ -84,18 +84,23 @@ Reply from eth-bridge for PRUserial485_open (1 byte):
 
 ### FeedForward Functions - Port 5050
 
-| Function       | Code         | Payload       | Total payload length (bytes)
-| :-            | :-            | :-            | :-            |
-| `PRUserial485_ff_configure(id_type, n_tables, max_range)`<br> *Configure FF functionality*        | `\x12`| **- id_type:** uint8 - 1 byte - 0: Delta, 1: IVU, 2: VPU <br>**- n_tables:** uint8 - 1 byte - number of different tables to be configured (this impacts on total points per table)   <br>**- max_range [um]:** float - 4 bytes - absolute maximum cassette excursion, where movement interval: [0, max_range] | 6 |
-| `PRUserial485_ff_set_mode(mode)`<br> *Enable or disable FF control loop*        | `\x13`| **- mode:**   uint8 - 1 byte -  0: disabled/others: enabled|  1 |
-| `PRUserial485_ff_read_mode()`<br> *Read FF control loop status (enabled/disabled)*        | `\x14`| ---- | 0 |
-| `PRUserial485_ff_load_table(tablenr, [[ps1],[ps2],[ps3],[ps4]])`<br> *Write FF table points (for all power supplies)*        | `\x15`| **- tablenr:** uint8 - 1 byte - table number to be configured<br> **- ps1:** floats - n  x 4 bytes - sequence of floating point representation for points for 1st power supply<br> **- ps2:** floats - n  x 4 bytes - sequence of floating point representation for points for 2nd power supply<br> **- ps3:** floats - n  x 4 bytes - sequence of floating point representation for points for 3rd power supply<br> **- ps4:** floats - n  x 4 bytes - sequence of floating point representation for points for 4th power supply<br><br>*nb: ps1, ps2, ps3 and ps4 must have same size*| 1 + 16x (points per curve) |
-| `PRUserial485_ff_read_table(tablenr)`<br> *Read FF table points (for all power supplies)*        | `\x16`| **- tablenr:** uint8 - 1 byte - table number to be read | 1 |
-| `PRUserial485_ff_current_table()`<br> *Read FF current working/in-use table*        | `\x17`| ---- | 0 |
-| `PRUserial485_ff_current_pointer()`<br> *Read FF pointer to setpoint selection in table*        | `\x18`| ---- | 0 |
-| `PRUserial485_ff_table_size()`<br> *Read FF configured table size*        | `\x19`| ---- | 0 |
-| `PRUserial485_ff_current_position()`<br> *Read FF current cassette position [um]*        | `\x1a`| ---- | 0 |
+| Function       | Code         | Payload       | Total payload length (bytes) | Reply from server
+| :-            | :-            | :-            | :-            | :-            |
+| `PRUserial485_ff_configure(id_type, n_tables, max_range)`<br> *Configure FF functionality*        | `\x12`| **- id_type:** uint8 - 1 byte - 0: Delta, 1: IVU, 2: VPU <br>**- n_tables:** uint8 - 1 byte - number of different tables to be configured (this impacts on total points per table)   <br>**- max_range [um]:** float - 4 bytes - absolute maximum cassette excursion, where movement interval: [0, max_range] | 6 | 1 byte (uint8_t)|
+| `PRUserial485_ff_set_mode(mode)`<br> *Enable or disable FF control loop*        | `\x13`| **- mode:**   uint8 - 1 byte -  0: disabled/others: enabled|  1 | 1 byte  (uint8_t)|
+| `PRUserial485_ff_read_mode()`<br> *Read FF control loop status (enabled/disabled)*        | `\x14`| ---- | 0 | 1 byte  (uint8_t)|
+| `PRUserial485_ff_load_table(tablenr, [[ps1],[ps2],[ps3],[ps4]])`<br> *Write FF table points (for all power supplies)*        | `\x15`| **- tablenr:** uint8 - 1 byte - table number to be configured<br> **- ps1:** floats - n  x 4 bytes - sequence of floating point representation for points for 1st power supply<br> **- ps2:** floats - n  x 4 bytes - sequence of floating point representation for points for 2nd power supply<br> **- ps3:** floats - n  x 4 bytes - sequence of floating point representation for points for 3rd power supply<br> **- ps4:** floats - n  x 4 bytes - sequence of floating point representation for points for 4th power supply<br><br>*nb: ps1, ps2, ps3 and ps4 must have same size*| 1 + 16x (points per curve) | 1 byte (uint8_t) |
+| `PRUserial485_ff_read_table(tablenr)`<br> *Read FF table points (for all power supplies)*        | `\x16`| **- tablenr:** uint8 - 1 byte - table number to be read | 1 | ---- |
+| `PRUserial485_ff_current_table()`<br> *Read FF current working/in-use table*        | `\x17`| ---- | 0 | 1 byte (uint8_t) |
+| `PRUserial485_ff_current_pointer()`<br> *Read FF pointer to setpoint selection in table*        | `\x18`| ---- | 0 | 2 bytes (uint16_t) |
+| `PRUserial485_ff_table_size()`<br> *Read FF configured table size*        | `\x19`| ---- | 0 | 2 bytes (uint16_t) |
+| `PRUserial485_ff_current_position()`<br> *Read FF current cassette position [um]*        | `\x1a`| ---- | 0 | 4 bytes  (float)|
+| `PRUserial485_ff_read_flags()`<br> *Read FF controller warning flags*        | `\x1b`| ---- | 0 | 1 byte (uint8_t) <br> [b7..b0] <br> **- b0:** Mode/Polarization out of range<br> **- b1:** Gap/phase (absolute value) out of range <br> **- b2:** Gap/phase high deviation from last sample<br> **- b3:** Timeout while waiting for serial data line availability<br> b[4..7]: --- |
+| `PRUserial485_ff_clear_flags()`<br> *Clear FF controller flags*        | `\x1c`| ---- | 0 | 1 byte (uint8_t) |
 
+
+
+**All multi-byte variables are big-endian structured*
 
 
 ### Example:
