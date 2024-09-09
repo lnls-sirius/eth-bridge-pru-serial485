@@ -44,6 +44,7 @@ read_data = {}
 
 # Initialize PRUserial485 - may be reinitialized if needed
 _lib.PRUserial485_open(6,b'M')
+_lib.PRUserial485_write(b'\x00',0)
 
 global logger 
 
