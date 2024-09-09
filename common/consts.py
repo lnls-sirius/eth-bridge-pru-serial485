@@ -102,7 +102,9 @@ FF_COMMANDS = [
     COMMAND_FeedForward_current_table,
     COMMAND_FeedForward_current_pointer,
     COMMAND_FeedForward_get_table_size,         # Number of points: one table, one power supply
-    COMMAND_FeedForward_get_absolute_position   # [um]
+    COMMAND_FeedForward_get_absolute_position,   # [um]
+    COMMAND_FeedForward_read_flags,
+    COMMAND_FeedForward_clear_flags
 ]
 
 # Checking parameters
