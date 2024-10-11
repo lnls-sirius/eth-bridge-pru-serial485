@@ -24,19 +24,6 @@ COMMAND_PRUserial485_clear_pulse_count_sync = b'\x0e'
 COMMAND_PRUserial485_version = b'\x0f'
 COMMAND_PRUserial485_server_eth_version = b'\x10'
 
-# FeedForward operation mode
-COMMAND_FeedForward_configure = b'\x12'
-COMMAND_FeedForward_set_mode = b'\x13'
-COMMAND_FeedForward_read_mode = b'\x14'
-COMMAND_FeedForward_load_table = b'\x15'
-COMMAND_FeedForward_read_table = b'\x16'
-COMMAND_FeedForward_current_table = b'\x17'
-COMMAND_FeedForward_current_pointer = b'\x18'
-COMMAND_FeedForward_get_table_size = b'\x19'            
-COMMAND_FeedForward_get_absolute_position = b'\x1a'
-COMMAND_FeedForward_read_flags = b'\x1b'   
-COMMAND_FeedForward_clear_flags = b'\x1c'  
-
 
 
 # Terminator
@@ -93,19 +80,6 @@ GENERAL_COMMANDS = [
     COMMAND_PRUserial485_server_eth_version
     ]
 
-FF_COMMANDS = [
-    COMMAND_FeedForward_configure,              # ID Type, number of tables/polarizations, ID max range [um]
-    COMMAND_FeedForward_set_mode,               # Enable/Disable
-    COMMAND_FeedForward_read_mode,              # Enabled/Disabled
-    COMMAND_FeedForward_load_table,             # Table number + [[t1],[t2],[t3],[t4]]
-    COMMAND_FeedForward_read_table,             # Table number + [[t1],[t2],[t3],[t4]]
-    COMMAND_FeedForward_current_table,
-    COMMAND_FeedForward_current_pointer,
-    COMMAND_FeedForward_get_table_size,         # Number of points: one table, one power supply
-    COMMAND_FeedForward_get_absolute_position,   # [um]
-    COMMAND_FeedForward_read_flags,
-    COMMAND_FeedForward_clear_flags
-]
 
 # Checking parameters
 AVAILABLE_BAUDRATES = [9600, 14400, 19200, 38400, 57600, 115200, 1, 6, 10, 12]

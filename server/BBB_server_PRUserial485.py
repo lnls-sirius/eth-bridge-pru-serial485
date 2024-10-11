@@ -9,12 +9,10 @@ Author: Patricia Nallin
 
 """
 
-RELEASE_DATE = "dd/mmm/2024"
+RELEASE_DATE = "October/2024"
 
-import argparse
 import datetime
 import logging
-import numpy as np
 import os.path
 import socket
 import struct
@@ -28,18 +26,16 @@ import PRUserial485 as _lib
 
 sys.path.append(os.path.abspath(os.path.join(os.path.pardir,'common')))
 from consts import *
-import feedforward.ffunctions as _ff
 
 
 # TCP port for PRUserial485 bridge
 SERVER_PORT_RW = 5000
 SERVER_PORT_GENERAL = 6000
-SERVER_PORT_FF = 5050
 DAEMON_PORT = 5500
 
 # Multi-client variables
 global connected_clients, read_data
-connected_clients = {SERVER_PORT_RW:[], SERVER_PORT_GENERAL:[], SERVER_PORT_FF:[]}
+connected_clients = {SERVER_PORT_RW:[], SERVER_PORT_GENERAL:[]}
 read_data = {}
 
 # Initialize PRUserial485 - may be reinitialized if needed
@@ -195,146 +191,6 @@ def processThread_rw():
         client.sendall(payload_length(item[0]+answer))
 
 
-def processThread_ff():
-    # ------------------------------------
-    # ----- Restore previous configuration before running thread
-    # ------------------------------------
-    time.sleep(2)
-    previous_conf = _ff.load_config()
-
-    if "config" in previous_conf.keys():
-        logger.info("[FF] Restoring previous FF configuration from {}/{} - Epoch {}".format(_ff.ff_config_folder, _ff.ff_config_file, previous_conf["config"]["configtime"]))
-        _lib.PRUserial485_ff_configure(previous_conf["config"]["idtype"], 
-                                       previous_conf["config"]["ntables"],
-                                       previous_conf["config"]["idrange"])
-        logger.info("[FF] ID type {} - ntables {} - ID range {} mm".format(previous_conf["config"]["idtype"], previous_conf["config"]["ntables"], previous_conf["config"]["idrange"]/1000))
-
-        for key in previous_conf.keys():
-            if key.startswith("table"):
-                cfg_tsize = _lib.PRUserial485_ff_get_table_size()
-
-                tables = [previous_conf[key]["ps1"],
-                          previous_conf[key]["ps2"],
-                          previous_conf[key]["ps3"],
-                          previous_conf[key]["ps4"]]
-
-                tables = _ff.interpol(cfg_tsize, tables)
-
-                _lib.PRUserial485_ff_load_table(previous_conf[key]["tableid"], tables)
-                                                      
-                logger.info("[FF] FF table #{} loaded - {} points interpolated into {} points".format(previous_conf[key]["tableid"], len(previous_conf[key]["ps1"]), cfg_tsize))
-        _lib.PRUserial485_ff_enable()
-
-    # ------------------------------------
-    # ----- Running thread
-    # ------------------------------------
-    while (True):
-        # Get next operation
-        item = queue_ff.get(block = True)
-        item[0] = struct.pack("B", item[0])
-        client = item[2]
-
-        # Verification and implementation
-        if (item[0] == COMMAND_FeedForward_configure):
-            ''' OK '''
-            idtype = item[1][0]
-            ntables = item[1][1]
-            idrange = struct.unpack('>f', item[1][2:6])[0]
-
-            answer = struct.pack("B", _lib.PRUserial485_ff_configure(idtype, ntables, idrange))
-
-            _ff.store_config({"config":{"idtype": idtype,
-                                       "ntables": ntables,
-                                       "idrange": idrange,
-                                       "configtime": int(datetime.datetime.now().timestamp())}})
-
-        elif (item[0] == COMMAND_FeedForward_set_mode):
-            ''' OK '''
-            mode = item[1][0]
-            if _lib.PRUserial485_ff_status() == mode:
-                continue
-            else:
-                if mode:
-                    _lib.PRUserial485_ff_enable()
-                else:
-                    _lib.PRUserial485_ff_disable()
-            answer = (ANSWER_OK)
-
-        elif (item[0] == COMMAND_FeedForward_read_mode):
-            ''' OK '''
-            answer = struct.pack("B", _lib.PRUserial485_ff_status())
-
-        elif (item[0] == COMMAND_FeedForward_load_table):
-            ''' OK '''
-            tablenr = item[1][0]
-            recv_tsize = int((len(item[1])-1) / 16)
-            cfg_tsize = _lib.PRUserial485_ff_get_table_size()
-            tables = []
-
-            if recv_tsize > cfg_tsize:
-                answer = ANSWER_ERR
-            
-            else:
-                for table in range(4):
-                    tables.append([struct.unpack(">f", item[1][4*i + 1:4*i+4 + 1])[0] for i in range((table*recv_tsize), (table+1)*recv_tsize)])
-               
-                res = _lib.PRUserial485_ff_load_table(tablenr, _ff.intepol(cfg_tsize, tables))
-
-                _ff.store_config({"table{}".format(tablenr):{"tableid": tablenr,
-                                                            "cfgsize": cfg_tsize,
-                                                            "ps1": tables[0],
-                                                            "ps2": tables[1],
-                                                            "ps3": tables[2],
-                                                            "ps4": tables[3],
-                                                            "configtime": int(datetime.datetime.now().timestamp())}})
-
-                answer = struct.pack("B", res)
-
-        elif (item[0] == COMMAND_FeedForward_read_table):
-            ''' OK '''
-            tablenr = item[1][0]
-            answer = struct.pack("B", item[1][0])
-
-            [t1, t2, t3, t4] = _lib.PRUserial485_ff_read_table(tablenr)
-
-            data1 = (struct.pack(">f", point) for point in t1)
-            data2 = (struct.pack(">f", point) for point in t2)
-            data3 = (struct.pack(">f", point) for point in t3)
-            data4 = (struct.pack(">f", point) for point in t4)
-            answer += b"".join(data1) + b"".join(data2) + b"".join(data3) + b"".join(data4)
-
-        elif (item[0] == COMMAND_FeedForward_current_table):
-            ''' OK '''
-            answer = struct.pack("B", _lib.PRUserial485_ff_read_current_table())
-
-        elif (item[0] == COMMAND_FeedForward_current_pointer):
-            ''' OK '''
-            ptr = _lib.PRUserial485_ff_read_current_pointer()
-            answer = struct.pack("BB", (ptr >> 8) & 0xFF, ptr & 0xFF)
-
-        elif (item[0] == COMMAND_FeedForward_get_table_size):
-            ''' OK '''
-            tsize = _lib.PRUserial485_ff_get_table_size()
-            answer = struct.pack("BB", (tsize >> 8) & 0xFF, tsize & 0xFF)
-
-        elif (item[0] == COMMAND_FeedForward_get_absolute_position):
-            ''' OK '''
-            pos = _lib.PRUserial485_ff_read_current_position()
-            answer = struct.pack(">f", float(pos))
-
-        elif (item[0] == COMMAND_FeedForward_read_flags):
-            ''' OK '''
-            answer = struct.pack("B", _lib.PRUserial485_ff_read_flags())
-
-        elif (item[0] == COMMAND_FeedForward_clear_flags):
-            ''' OK '''
-            _lib.PRUserial485_ff_clear_flags()
-            answer = (ANSWER_OK)
-            
-
-        if client is not "InitConfig":
-            client.sendall(payload_length(item[0]+answer))
-
 
 def clientThread(client_connection, client_info, conn_port):
     global connected_clients, read_data
@@ -344,7 +200,7 @@ def clientThread(client_connection, client_info, conn_port):
     while (True):
         # Message header - Operation command (1 byte) + data size (4 bytes)
         data = client_connection.recv(5)
-
+        
         if(len(data) == 5):
             command = data[0]
             data_size = struct.unpack(">I", data[1:])[0]
@@ -369,9 +225,6 @@ def clientThread(client_connection, client_info, conn_port):
 
                 elif(conn_port == SERVER_PORT_GENERAL) and any([ord(cmd) == command for cmd in GENERAL_COMMANDS]):
                     queue_general.put([command, message, client_connection])
-
-                elif(conn_port == SERVER_PORT_FF) and any([ord(cmd) == command for cmd in FF_COMMANDS]):
-                    queue_ff.put([command, message, client_connection])
 
         else:
             connected_clients[conn_port].remove(client_info)
@@ -447,20 +300,11 @@ if (__name__ == '__main__'):
     logger.setLevel(logging.INFO)
 
 
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('-m', '--mode', dest='mode', default='default', choices=['default', 'feedforward'])
-    args = parser.parse_args()
-
-
     logger.info("----- TCP/IP SERVER FOR PRUSERIAL485 (Ethernet bridge for PRUserial485) -----")
     logger.info("----- Release date: {} -----".format(RELEASE_DATE))
-    if(args.mode == 'feedforward'):
-        logger.info("----- Mode: {} -----\n".format(args.mode))
 
     queue_general = Queue()
     queue_rw = Queue()
-    if(args.mode == 'feedforward'):
-        queue_ff = Queue()
 
     # Create and start process threads
     process_general = threading.Thread(target = processThread_general)
@@ -479,16 +323,6 @@ if (__name__ == '__main__'):
     connection_rw = threading.Thread(target = connectionThread, args = [SERVER_PORT_RW])
     connection_rw.setDaemon(True)
     connection_rw.start()
-
-    if(args.mode == 'feedforward'):
-        process_ff = threading.Thread(target = processThread_ff)
-        process_ff.setDaemon(True)
-        process_ff.start()
-        
-        connection_ff = threading.Thread(target = connectionThread, args = [SERVER_PORT_FF])
-        connection_ff.setDaemon(True)
-        connection_ff.start()
-
 
     # Daemon thread - Not used yet
     #daemon_thread = threading.Thread(target = daemon_server, args = [DAEMON_PORT])

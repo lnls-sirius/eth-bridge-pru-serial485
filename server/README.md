@@ -10,7 +10,6 @@
 This python module was developed to run PRUserial485 commands remotely in a Beaglebone Black from any other workstation/device, based on TCP/IP socket connections.
 
 - **Port 5000**: for write/read commands, operations directly using serial RS485, which depends on the equipment response or serial line availability (blocking functions).
-- **Port 5050**: feedforward socket. Use: only for feedforward applications.
 - **Port 6000**: for general commands, which only depends on BBB memory access and answer is always immediate.
 
 To find out whether ports 5000 and 6000 are available for connecting, you may use `wait-for-it`.
@@ -81,47 +80,3 @@ Reply from eth-bridge for PRUserial485_open (1 byte):
 - **Reply command:** `\x00\x00\x00\x00\x01\x00`
 
 ----
-
-### FeedForward Functions - Port 5050
-
-| Function       | Code         | Payload       | Total payload length (bytes) | Reply from server
-| :-            | :-            | :-            | :-            | :-            |
-| `PRUserial485_ff_configure(id_type, n_tables, max_range)`<br> *Configure FF functionality*        | `\x12`| **- id_type:** uint8 - 1 byte - 0: Delta, 1: IVU, 2: VPU <br>**- n_tables:** uint8 - 1 byte - number of different tables to be configured (this impacts on total points per table)   <br>**- max_range [um]:** float - 4 bytes - absolute maximum cassette excursion, where movement interval: [0, max_range] | 6 | 1 byte (uint8_t)<br> CONFIGURED_OK (0x00) <br> ERR_MANY_TABLES (0x09) <br> ERR_UNKNOWN_ID_TYPE (0x0a)|
-| `PRUserial485_ff_set_mode(mode)`<br> *Enable or disable FF control loop*        | `\x13`| **- mode:**   uint8 - 1 byte -  0: disabled/others: enabled|  1 | 1 byte  (uint8_t) <br> OK (0x21)|
-| `PRUserial485_ff_read_mode()`<br> *Read FF control loop status (enabled/disabled)*        | `\x14`| ---- | 0 | 1 byte  (uint8_t) <br> DISABLED (0x00) <br> ENABLED (! 0x00)|
-| `PRUserial485_ff_load_table(tablenr, [[ps1],[ps2],[ps3],[ps4]])`<br> *Write FF table points (for all power supplies)*        | `\x15`| **- tablenr:** uint8 - 1 byte - table number to be configured<br> **- ps1:** floats - n  x 4 bytes - sequence of floating point representation for points for 1st power supply<br> **- ps2:** floats - n  x 4 bytes - sequence of floating point representation for points for 2nd power supply<br> **- ps3:** floats - n  x 4 bytes - sequence of floating point representation for points for 3rd power supply<br> **- ps4:** floats - n  x 4 bytes - sequence of floating point representation for points for 4th power supply<br><br>*nb: ps1, ps2, ps3 and ps4 must have same size*| 1 + 16x (points per curve) | 1 byte (uint8_t) <br> TABLE_LOADED (0x00) <br> ERR_WRONG_TABLE_NR (0x11) <br> OVERSIZED_TABLES (0x22) <br>|
-| `PRUserial485_ff_read_table(tablenr)`<br> *Read FF table points (for all power supplies)*        | `\x16`| **- tablenr:** uint8 - 1 byte - table number to be read | 1 | 1 + (n x 16) bytes (uint8_t + floats), where n = table size <br> tablenr + float point sequence for all power supplies <br> (sequence ps1 + sequence ps2 + sequence ps3 + sequence ps4)|
-| `PRUserial485_ff_current_table()`<br> *Read FF current working/in-use table*        | `\x17`| ---- | 0 | 1 byte (uint8_t) <br> Table number curruntly in use |
-| `PRUserial485_ff_current_pointer()`<br> *Read FF pointer to setpoint selection in table*        | `\x18`| ---- | 0 | 2 bytes (uint16_t) <br>Table point currently set (range [0-table_size])|
-| `PRUserial485_ff_table_size()`<br> *Read FF configured table size*        | `\x19`| ---- | 0 | 2 bytes (uint16_t) <br> Total interpolated points per mode/polarization for each power supply|
-| `PRUserial485_ff_current_position()`<br> *Read FF current cassette position [um]*        | `\x1a`| ---- | 0 | 4 bytes  (float) <br> Gap/phase value, in micrometers [um]|
-| `PRUserial485_ff_read_flags()`<br> *Read FF controller warning flags*        | `\x1b`| ---- | 0 | 1 byte (uint8_t) <br> [b7..b0] <br> **- b0:** Mode/Polarization out of range<br> **- b1:** Gap/phase (absolute value) out of range <br> **- b2:** Gap/phase high deviation from last sample<br> **- b3:** Timeout while waiting for serial data line availability<br> b[4..7]: --- |
-| `PRUserial485_ff_clear_flags()`<br> *Clear FF controller flags*        | `\x1c`| ---- | 0 | 1 byte (uint8_t) <br> OK (0x21) |
-
-
-
-**All multi-byte variables are big-endian structured*
-
-
-### Example:
-Configure FF for IVU type, with only one correction table considering maximum gap as 12 mm.
-- Function: **PRUserial485_ff_configure(id_type = 1, n_tables = 1, max_range = 12000.0)**
-- eth-bridge code: \x12
-- Arguments (6 bytes):
-    - id_type: uint8 (\x01 = 1)
-    - n_tables: uint8 (\x01 = 1)
-    - max_range: float (\x46\x3B\x80\x00 = 12000.0)
-
-
-Mapping into a eth-bridge command:
-- **Function code:** \x12
-- **Payload size:** \x00\x00\x00\x06
-- **Payload:** \x01 + \x01 + \x46\x3B\x80\x00
-- **Function command (CLIENT -> SERVER):** `\x12\x00\x00\x00\x06\x01\x01\x46\x3B\x80\x00`
-
-
-Reply from eth-bridge for PRUserial485_ff_configure (1 byte):
-- **Function code:** \x00
-- **Payload size:** \x00\x00\x00\x01
-- **Payload:** \x00 (PRUserial485_ff_configure return)
-- **Reply command (SERVER -> CLIENT):** `\x00\x00\x00\x00\x01\x00`
