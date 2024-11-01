@@ -44,9 +44,6 @@ _lib.PRUserial485_write(b'\x00',0)
 
 global logger 
 
-def time_string() -> str:
-    return(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f") + " - ")
-
 
 def payload_length(payload) -> bytes:
     """."""
@@ -234,14 +231,14 @@ def clientThread(client_connection, client_info, conn_port):
             else:
                 connected_clients[conn_port].remove(client_info)
                 read_data.pop(client_connection)
-                logger.info(time_string() + "Client {}:{} disconnected on port {}.".format(client_info[0], client_info[1], conn_port))
+                logger.info("Client {}:{} disconnected on port {}.".format(client_info[0], client_info[1], conn_port))
                 break
 
     except Exception as e:
         connected_clients[conn_port].remove(client_info)
         read_data.pop(client_connection)
         logger.info(e)
-        logger.info(time_string() + "Client {}:{} disconnected on port {}.".format(client_info[0], client_info[1], conn_port))
+        logger.info("Client {}:{} disconnected on port {}.".format(client_info[0], client_info[1], conn_port))
     
 
 
@@ -268,7 +265,7 @@ def connectionThread(conn_port):
                 connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)   # Retry keepalive 3 times
 
                 # Create client listening thread
-                logger.info(time_string() + "Port {}: client {}:{} connected".format(conn_port, client_info[0], client_info[1]))
+                logger.info("Port {}: client {}:{} connected".format(conn_port, client_info[0], client_info[1]))
 
                 new_client_thread = threading.Thread(target = clientThread, args = [connection, client_info, conn_port])
                 new_client_thread.setDaemon(True)
@@ -289,7 +286,7 @@ def daemon_server():
             daemon_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             daemon_socket.bind(("", DAEMON_PORT))
             daemon_socket.listen(1)
-            logger.info(time_string() + "TCP/IP daemon server on port {} started\n".format(DAEMON_PORT))
+            logger.info("TCP/IP daemon server on port {} started\n".format(DAEMON_PORT))
 
             while(True):
                 daemon_socket.accept()
