@@ -88,15 +88,6 @@ AVAILABLE_CURVE_BLOCKS = [0, 1, 2, 3]
 AVAILABLE_SYNC_MODES = [0x51, 0x5e, 0xc1, 0xce, 0x5b]
 
 
-# FeedForward options
-FF_DELTA_ID_TYPE   = 0
-FF_IVU_ID_TYPE     = 1
-FF_VPU_ID_TYPE     = 2
-FF_DELTA_MAX_RANGE = 26000.0 # [um]
-FF_IVU_MAX_RANGE   = 22000.0 # [um]
-FF_VPU_MAX_RANGE   = 20000.0 # [um]
-
-
 # Location
 SERVER_FILES_PATH = "/root/eth-bridge-pru-serial485/server"
 VERSION_FILE_PATH = "/root/eth-bridge-pru-serial485/client/VERSION"
