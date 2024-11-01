@@ -197,44 +197,52 @@ def clientThread(client_connection, client_info, conn_port):
     connected_clients[conn_port].append(client_info)
     read_data[client_connection] = []
 
-    while (True):
-        # Message header - Operation command (1 byte) + data size (4 bytes)
-        data = client_connection.recv(5)
+    try:
+        while (True):
+            # Message header - Operation command (1 byte) + data size (4 bytes)
+            data = client_connection.recv(5)
         
-        if(len(data) == 5):
-            command = data[0]
-            data_size = struct.unpack(">I", data[1:])[0]
+            if(len(data) == 5):
+                command = data[0]
+                data_size = struct.unpack(">I", data[1:])[0]
 
-            # Get message
-            message = b''
+                # Get message
+                message = b''
 
-            # Wait max 500 ms until complete message is received
-            client_connection.setsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO, struct.pack("ll", 0, 500000))
+                # Wait max 500 ms until complete message is received
+                client_connection.setsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO, struct.pack("ll", 0, 500000))
 
-            for i in range(int(data_size / 4096)):
-                message += client_connection.recv(4096, socket.MSG_WAITALL)
-            message += client_connection.recv(int(data_size % 4096), socket.MSG_WAITALL)
+                for i in range(int(data_size / 4096)):
+                    message += client_connection.recv(4096, socket.MSG_WAITALL)
+                message += client_connection.recv(int(data_size % 4096), socket.MSG_WAITALL)
 
-            # Reset blocking socket
-            client_connection.setsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO, struct.pack("ll", 0, 0))
+                # Reset blocking socket
+                client_connection.setsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO, struct.pack("ll", 0, 0))
 
 
-            # Put operation in Queue
-            if len(message) == data_size:
-                if(conn_port == SERVER_PORT_RW) and any([ord(cmd) == command for cmd in RW_COMMANDS]):
-                    queue_rw.put([command, message, client_connection])
+                # Put operation in Queue
+                if len(message) == data_size:
+                    if(conn_port == SERVER_PORT_RW) and any([ord(cmd) == command for cmd in RW_COMMANDS]):
+                        queue_rw.put([command, message, client_connection])
 
-                elif(conn_port == SERVER_PORT_GENERAL) and any([ord(cmd) == command for cmd in GENERAL_COMMANDS]):
-                    queue_general.put([command, message, client_connection])
+                    elif(conn_port == SERVER_PORT_GENERAL) and any([ord(cmd) == command for cmd in GENERAL_COMMANDS]):
+                        queue_general.put([command, message, client_connection])
            
-                else:
-                    ans = struct.pack("B", command) + ANSWER_ERR
-                    client_connection.sendall(payload_length(ans))
-        else:
-            connected_clients[conn_port].remove(client_info)
-            read_data.pop(client_connection)
-            logger.info(time_string() + "Client {}:{} disconnected on port {}.".format(client_info[0], client_info[1], conn_port))
-            break
+                    else:
+                        ans = struct.pack("B", command) + ANSWER_ERR
+                        client_connection.sendall(payload_length(ans))
+            else:
+                connected_clients[conn_port].remove(client_info)
+                read_data.pop(client_connection)
+                logger.info(time_string() + "Client {}:{} disconnected on port {}.".format(client_info[0], client_info[1], conn_port))
+                break
+
+    except Exception as e:
+        connected_clients[conn_port].remove(client_info)
+        read_data.pop(client_connection)
+        logger.info(e)
+        logger.info(time_string() + "Client {}:{} disconnected on port {}.".format(client_info[0], client_info[1], conn_port))
+    
 
 
 def connectionThread(conn_port):
@@ -253,7 +261,13 @@ def connectionThread(conn_port):
                 # Wait for client connection
                 connection, client_info = server_socket.accept()
 
-                # New connection
+                # 'Keep alive' option to prevent/close ghost connections
+                connection.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)   # Enable KeepAlive functionality
+                connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 1)  # Wait 1 sec before testing keepalive
+                connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 3) # Retry keepalive after 3 secs
+                connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)   # Retry keepalive 3 times
+
+                # Create client listening thread
                 logger.info(time_string() + "Port {}: client {}:{} connected".format(conn_port, client_info[0], client_info[1]))
 
                 new_client_thread = threading.Thread(target = clientThread, args = [connection, client_info, conn_port])
