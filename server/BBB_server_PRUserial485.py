@@ -218,6 +218,7 @@ def clientThread(client_connection, client_info, conn_port):
             # Reset blocking socket
             client_connection.setsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO, struct.pack("ll", 0, 0))
 
+
             # Put operation in Queue
             if len(message) == data_size:
                 if(conn_port == SERVER_PORT_RW) and any([ord(cmd) == command for cmd in RW_COMMANDS]):
@@ -225,7 +226,10 @@ def clientThread(client_connection, client_info, conn_port):
 
                 elif(conn_port == SERVER_PORT_GENERAL) and any([ord(cmd) == command for cmd in GENERAL_COMMANDS]):
                     queue_general.put([command, message, client_connection])
-
+           
+                else:
+                    ans = struct.pack("B", command) + ANSWER_ERR
+                    client_connection.sendall(payload_length(ans))
         else:
             connected_clients[conn_port].remove(client_info)
             read_data.pop(client_connection)
