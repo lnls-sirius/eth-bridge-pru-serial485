@@ -6,26 +6,27 @@ Ethernet bridge for PRUserial485 library.
 SERVER SIDE - BEAGLEBONE BLACK SCRIPT
 Author: Patricia Nallin
 
-Release:
-30/may/2022
+
 """
 
-RELEASE_DATE = "30/may/2022"
+RELEASE_DATE = "October/2024"
 
-import logging
-from logging.handlers import RotatingFileHandler
-import socket
-import time
-import sys
-import struct
-import threading
-import os.path
-import subprocess
 import datetime
-sys.path.append(os.path.abspath(os.path.join(os.path.pardir,'common')))
-from consts import *
+import logging
+import os.path
+import socket
+import struct
+import subprocess
+import sys
+import threading
+import time
+from logging.handlers import RotatingFileHandler
 from queue import Queue
 import PRUserial485 as _lib
+
+sys.path.append(os.path.abspath(os.path.join(os.path.pardir,'common')))
+from consts import *
+
 
 # TCP port for PRUserial485 bridge
 SERVER_PORT_RW = 5000
@@ -39,11 +40,9 @@ read_data = {}
 
 # Initialize PRUserial485 - may be reinitialized if needed
 _lib.PRUserial485_open(6,b'M')
+_lib.PRUserial485_write(b'\x00',0)
 
 global logger 
-
-def time_string() -> str:
-    return(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f") + " - ")
 
 
 def payload_length(payload) -> bytes:
@@ -185,9 +184,9 @@ def processThread_rw():
             timeout = unpack_float(item[1][:4])[0]
             data = item[1][4:]
             res = _lib.PRUserial485_write(data, timeout)
-
             answer = validate_answer(_lib.PRUserial485_read(), data)
         client.sendall(payload_length(item[0]+answer))
+
 
 
 def clientThread(client_connection, client_info, conn_port):
@@ -195,32 +194,52 @@ def clientThread(client_connection, client_info, conn_port):
     connected_clients[conn_port].append(client_info)
     read_data[client_connection] = []
 
-    while (True):
-        # Message header - Operation command (1 byte) + data size (4 bytes)
-        data = client_connection.recv(5)
+    try:
+        while (True):
+            # Message header - Operation command (1 byte) + data size (4 bytes)
+            data = client_connection.recv(5)
+        
+            if(len(data) == 5):
+                command = data[0]
+                data_size = struct.unpack(">I", data[1:])[0]
 
-        if(len(data) == 5):
-            command = data[0]
-            data_size = struct.unpack(">I", data[1:])[0]
+                # Get message
+                message = b''
 
-            # Get message
-            message = b''
-            for i in range(int(data_size / 4096)):
-                message += client_connection.recv(4096, socket.MSG_WAITALL)
-            message += client_connection.recv(int(data_size % 4096), socket.MSG_WAITALL)
+                # Wait max 500 ms until complete message is received
+                client_connection.setsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO, struct.pack("ll", 0, 500000))
 
-            # Put operation in Queue
-            if len(message) == data_size:
-                if command == ord(COMMAND_PRUserial485_write) or command == ord(COMMAND_PRUserial485_read) or command == ord(COMMAND_PRUserial485_request):
-                    queue_rw.put([command, message, client_connection])
-                else:
-                    queue_general.put([command, message, client_connection])
+                for i in range(int(data_size / 4096)):
+                    message += client_connection.recv(4096, socket.MSG_WAITALL)
+                message += client_connection.recv(int(data_size % 4096), socket.MSG_WAITALL)
 
-        else:
-            connected_clients[conn_port].remove(client_info)
-            read_data.pop(client_connection)
-            logger.info(time_string() + "Client {}:{} disconnected on port {}.".format(client_info[0], client_info[1], conn_port))
-            break
+                # Reset blocking socket
+                client_connection.setsockopt(socket.SOL_SOCKET, socket.SO_RCVTIMEO, struct.pack("ll", 0, 0))
+
+
+                # Put operation in Queue
+                if len(message) == data_size:
+                    if(conn_port == SERVER_PORT_RW) and any([ord(cmd) == command for cmd in RW_COMMANDS]):
+                        queue_rw.put([command, message, client_connection])
+
+                    elif(conn_port == SERVER_PORT_GENERAL) and any([ord(cmd) == command for cmd in GENERAL_COMMANDS]):
+                        queue_general.put([command, message, client_connection])
+           
+                    else:
+                        ans = struct.pack("B", command) + ANSWER_ERR
+                        client_connection.sendall(payload_length(ans))
+            else:
+                connected_clients[conn_port].remove(client_info)
+                read_data.pop(client_connection)
+                logger.info("Client {}:{} disconnected on port {}.".format(client_info[0], client_info[1], conn_port))
+                break
+
+    except Exception as e:
+        connected_clients[conn_port].remove(client_info)
+        read_data.pop(client_connection)
+        logger.info(e)
+        logger.info("Client {}:{} disconnected on port {}.".format(client_info[0], client_info[1], conn_port))
+    
 
 
 def connectionThread(conn_port):
@@ -239,8 +258,14 @@ def connectionThread(conn_port):
                 # Wait for client connection
                 connection, client_info = server_socket.accept()
 
-                # New connection
-                logger.info(time_string() + "Port {}: client {}:{} connected".format(conn_port, client_info[0], client_info[1]))
+                # 'Keep alive' option to prevent/close ghost connections
+                connection.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)   # Enable KeepAlive functionality
+                connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 1)  # Wait 1 sec before testing keepalive
+                connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 3) # Retry keepalive after 3 secs
+                connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)   # Retry keepalive 3 times
+
+                # Create client listening thread
+                logger.info("Port {}: client {}:{} connected".format(conn_port, client_info[0], client_info[1]))
 
                 new_client_thread = threading.Thread(target = clientThread, args = [connection, client_info, conn_port])
                 new_client_thread.setDaemon(True)
@@ -261,7 +286,7 @@ def daemon_server():
             daemon_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             daemon_socket.bind(("", DAEMON_PORT))
             daemon_socket.listen(1)
-            logger.info(time_string() + "TCP/IP daemon server on port {} started\n".format(DAEMON_PORT))
+            logger.info("TCP/IP daemon server on port {} started\n".format(DAEMON_PORT))
 
             while(True):
                 daemon_socket.accept()
@@ -288,6 +313,7 @@ if (__name__ == '__main__'):
         logger.addHandler(file_handler)
 
     logger.setLevel(logging.INFO)
+
 
     logger.info("----- TCP/IP SERVER FOR PRUSERIAL485 (Ethernet bridge for PRUserial485) -----")
     logger.info("----- Release date: {} -----".format(RELEASE_DATE))
@@ -317,6 +343,7 @@ if (__name__ == '__main__'):
     #daemon_thread = threading.Thread(target = daemon_server, args = [DAEMON_PORT])
     #daemon_thread.setDaemon(True)
     #daemon_thread.start()
+
 
     while (True):
         time.sleep(10)
