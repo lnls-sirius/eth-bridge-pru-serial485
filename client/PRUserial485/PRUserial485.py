@@ -186,7 +186,7 @@ class _EthBridgeClientCommonInterface:
         return struct.pack("B", payload[0]) + struct.pack(">I", (len(payload) - 1)) + payload[1:]
 
     def _socket_connect(self, conn_port):
-        """Creates socket connection"""
+        """Create socket connection."""
         if self._bbb_ip is None:
             raise ValueError("BeagleBone IP address undefined!")
 
@@ -485,8 +485,10 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
         try:
             self.socket.sendall(datalen)
         except socket.timeout:
+            print('socket timeout in ethbridge [1]')
             raise
-        except Exception:
+        except Exception as err0:
+            print('exception in ethbridge [2]', err0)
             self.socket = None
             for _ in range(3):
                 # Try reconnecting 3 times if remote socket is not available
@@ -495,8 +497,10 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
                     self.socket.sendall(datalen)
                     break
                 except socket.timeout:
-                    raise 
-                except Exception:
+                    print('socket timeout in ethbridge [3]')
+                    raise
+                except Exception as err1:
+                    print('exception in ethbridge [4]', err1)
                     self.socket = None
             else:
                 return command_recv, payload
@@ -505,9 +509,11 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
         try:
             answer = self.socket.recv(5)
         except socket.timeout:
+            print('socket timeout in ethbridge [5]')
             raise
         except ConnectionResetError:
             # This except might happen when server is suddenly stopped
+            print('connection reset error [6]')
             answer = []
 
         if answer:
@@ -521,11 +527,14 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
             try:
                 for _ in range(int(data_size / 4096)):
                     payload += self.socket.recv(4096, socket.MSG_WAITALL)
-                payload += self.socket.recv(int(data_size % 4096), socket.MSG_WAITALL)
+                payload += self.socket.recv(
+                    int(data_size % 4096), socket.MSG_WAITALL)
             except socket.timeout:
+                print('socket timeout in ethbridge [7]')
                 raise
             except ConnectionResetError:
                 # This except might happen when server is suddenly stopped
+                print('connection reset error [8]')
                 return command_recv, payload
 
         return command_recv, payload

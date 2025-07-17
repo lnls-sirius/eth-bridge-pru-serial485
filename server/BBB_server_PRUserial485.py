@@ -34,13 +34,13 @@ DAEMON_PORT = 5500
 
 # Multi-client variables
 global connected_clients, read_data
-connected_clients = {SERVER_PORT_RW:[], SERVER_PORT_GENERAL:[]}
+connected_clients = {SERVER_PORT_RW: [], SERVER_PORT_GENERAL: []}
 read_data = {}
 
 # Initialize PRUserial485 - may be reinitialized if needed
-_lib.PRUserial485_open(6,b'M')
+_lib.PRUserial485_open(6, b'M')
 
-global logger 
+global logger
 
 def time_string() -> str:
     return(datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S.%f") + " - ")
@@ -50,6 +50,7 @@ def payload_length(payload) -> bytes:
     """."""
     return(struct.pack("B", payload[0]) +
         struct.pack(">I", (len(payload)-1)) + payload[1:])
+
 
 def validate_answer(payload: bytes, sent: bytes = b"unknown command") -> bytes:
     if payload == b'' or not isinstance(payload, bytes):
@@ -270,9 +271,6 @@ def daemon_server():
             daemon_socket.close()
             logger.error("Connection problem on daemon port {}: ", exc_info=True)
             time.sleep(1)
-
-
-
 
 
 if (__name__ == '__main__'):
