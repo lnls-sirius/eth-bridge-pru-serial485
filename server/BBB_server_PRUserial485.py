@@ -47,9 +47,9 @@ def payload_length(payload) -> bytes:
     """."""
     return (
         struct.pack("B", payload[0]) +
-        payload[1] +
+        struct.pack("B", payload[1]) +
         struct.pack(">I", (len(payload)-1)) +
-        payload[1:]
+        payload[2:]
     )
 
 
@@ -167,7 +167,7 @@ def processThread_rw():
         # Get next operation
         item = queue_rw.get(block=True)
         item[0] = pack_unsigned_byte(item[0])
-        msg_id = item[1]
+        msg_id = pack_unsigned_byte(item[1])
         client = item[3]
         answer = b''
 
@@ -187,7 +187,6 @@ def processThread_rw():
             timeout = unpack_float(item[2][:4])[0]
             data = item[2][4:]
             res = _lib.PRUserial485_write(data, timeout)
-
             answer = validate_answer(_lib.PRUserial485_read(), data)
         client.sendall(payload_length(item[0] + msg_id + answer))
 
