@@ -1,8 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-"""
-Ethernet bridge for PRUserial485 library.
+"""Ethernet bridge for PRUserial485 library.
 
 CLIENT SIDE - PRUserial485 via Ethernet bridge
 Author: Patricia Nallin
@@ -20,6 +19,7 @@ import socket
 import struct
 from threading import Thread, Event
 from queue import Queue, Empty
+import logging as _log
 
 import PRUserial485.consts as _c
 
@@ -65,7 +65,7 @@ class _EthBridgeClientCommonInterface:
         """."""
         # IP
         self._bbb_ip = self._check_ip_address(ip_address)
-        #self._bbb_ip = ip_address
+        # self._bbb_ip = ip_address
         self.socket = None
 
     def open(self, baudrate: int = 6, mode: bytes = b"M") -> int:
@@ -485,10 +485,10 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
         try:
             self.socket.sendall(datalen)
         except socket.timeout:
-            print('socket timeout in ethbridge [1]')
+            _log.warning('socket timeout while trying sendall...')
             raise
         except Exception as err0:
-            print('exception in ethbridge [2]', err0)
+            _log.warning('exception while trying sendall: ' + str(err0))
             self.socket = None
             for _ in range(3):
                 # Try reconnecting 3 times if remote socket is not available
@@ -497,10 +497,12 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
                     self.socket.sendall(datalen)
                     break
                 except socket.timeout:
-                    print('socket timeout in ethbridge [3]')
+                    _log.warning(
+                        'socket timeout while after first exception...')
                     raise
-                except Exception as err1:
-                    print('exception in ethbridge [4]', err1)
+                except Exception:
+                    _log.warning(
+                        'second exception after first exception...')
                     self.socket = None
             else:
                 return command_recv, payload
@@ -509,11 +511,11 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
         try:
             answer = self.socket.recv(5)
         except socket.timeout:
-            print('socket timeout in ethbridge [5]')
+            _log.warning('socket timeout while trying recv(5)...')
             raise
         except ConnectionResetError:
             # This except might happen when server is suddenly stopped
-            print('connection reset error [6]')
+            _log.warning('conn reset error while trying recv(5)...')
             answer = []
 
         if answer:
@@ -530,11 +532,11 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
                 payload += self.socket.recv(
                     int(data_size % 4096), socket.MSG_WAITALL)
             except socket.timeout:
-                print('socket timeout in ethbridge [7]')
+                _log.warning('socket timeout while processing data...')
                 raise
             except ConnectionResetError:
                 # This except might happen when server is suddenly stopped
-                print('connection reset error [8]')
+                _log.warning('conn reset error while processing data...')
                 return command_recv, payload
 
         return command_recv, payload
