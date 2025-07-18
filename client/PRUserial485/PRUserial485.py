@@ -526,11 +526,11 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
         try:
             answer = self.socket.recv(6)
         except socket.timeout:
-            _log.warning('socket timeout while trying recv(5)...')
+            _log.warning('socket timeout while trying recv(6)...')
             raise
         except ConnectionResetError:
             # This except might happen when server is suddenly stopped
-            _log.warning('conn reset error while trying recv(5)...')
+            _log.warning('conn reset error while trying recv(6)...')
             answer = []
 
         if answer:
