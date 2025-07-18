@@ -45,8 +45,12 @@ global logger
 
 def payload_length(payload) -> bytes:
     """."""
-    return (struct.pack("B", payload[0]) +
-        struct.pack(">I", (len(payload)-1)) + payload[1:])
+    return (
+        struct.pack("B", payload[0]) +
+        payload[1] +
+        struct.pack(">I", (len(payload)-1)) +
+        payload[1:]
+    )
 
 
 def validate_answer(payload: bytes, sent: bytes = b"unknown command") -> bytes:
@@ -163,13 +167,14 @@ def processThread_rw():
         # Get next operation
         item = queue_rw.get(block=True)
         item[0] = pack_unsigned_byte(item[0])
-        client = item[2]
+        msg_id = item[1]
+        client = item[3]
         answer = b''
 
         # Verification and implementation
         if (item[0] == COMMAND_PRUserial485_write):
-            timeout = unpack_float(item[1][:4])[0]
-            data = item[1][4:]
+            timeout = unpack_float(item[2][:4])[0]
+            data = item[2][4:]
             res = _lib.PRUserial485_write(data, timeout)
 
             read_data[client] = _lib.PRUserial485_read()
@@ -179,11 +184,12 @@ def processThread_rw():
             answer = validate_answer(read_data[client], b"read")
 
         elif (item[0] == COMMAND_PRUserial485_request):
-            timeout = unpack_float(item[1][:4])[0]
-            data = item[1][4:]
+            timeout = unpack_float(item[2][:4])[0]
+            data = item[2][4:]
             res = _lib.PRUserial485_write(data, timeout)
+
             answer = validate_answer(_lib.PRUserial485_read(), data)
-        client.sendall(payload_length(item[0]+answer))
+        client.sendall(payload_length(item[0] + msg_id + answer))
 
 
 def clientThread(client_connection, client_info, conn_port):
@@ -194,11 +200,12 @@ def clientThread(client_connection, client_info, conn_port):
     try:
         while (True):
             # Message header - Operation command (1 byte) + data size (4 bytes)
-            data = client_connection.recv(5)
+            data = client_connection.recv(6)
 
-            if (len(data) == 5):
+            if (len(data) == 6):
                 command = data[0]
-                data_size = struct.unpack(">I", data[1:])[0]
+                msg_id = data[1]
+                data_size = struct.unpack(">I", data[2:])[0]
 
                 # Get message
                 message = b''
@@ -216,13 +223,15 @@ def clientThread(client_connection, client_info, conn_port):
                 # Put operation in Queue
                 if len(message) == data_size:
                     if (conn_port == SERVER_PORT_RW) and any([ord(cmd) == command for cmd in RW_COMMANDS]):
-                        queue_rw.put([command, message, client_connection])
+                        queue_rw.put(
+                            [command, msg_id, message, client_connection])
 
                     elif (conn_port == SERVER_PORT_GENERAL) and any([ord(cmd) == command for cmd in GENERAL_COMMANDS]):
-                        queue_general.put([command, message, client_connection])
+                        queue_general.put(
+                            [command, msg_id, message, client_connection])
 
                     else:
-                        ans = struct.pack("B", command) + ANSWER_ERR
+                        ans = struct.pack("B", command) + msg_id + ANSWER_ERR
                         client_connection.sendall(payload_length(ans))
             else:
                 connected_clients[conn_port].remove(client_info)

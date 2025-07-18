@@ -67,6 +67,7 @@ class _EthBridgeClientCommonInterface:
         self._bbb_ip = self._check_ip_address(ip_address)
         # self._bbb_ip = ip_address
         self.socket = None
+        self.msg_id = 0
 
     def open(self, baudrate: int = 6, mode: bytes = b"M") -> int:
         """Procedimento de inicialização da PRU."""
@@ -181,9 +182,14 @@ class _EthBridgeClientCommonInterface:
             raise ValueError("Invalid IP")
 
     @staticmethod
-    def _payload_length(payload):
+    def _payload_length(payload, msg_id):
         """Inserts payload length at payload's second byte"""
-        return struct.pack("B", payload[0]) + struct.pack(">I", (len(payload) - 1)) + payload[1:]
+        return (
+            struct.pack("B", payload[0]) +  # function code 1 byte
+            struct.pack("B", msg_id) +  # message id 1 byte
+            struct.pack(">I", (len(payload) - 1)) +  # size 4 bytes
+            payload[1:]  # message
+        )
 
     def _socket_connect(self, conn_port):
         """Create socket connection."""
@@ -476,7 +482,7 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
 
     def _send_communication_data(self, payload):
         """."""
-        datalen = EthBridgeClient._payload_length(payload)
+        datalen = EthBridgeClient._payload_length(payload, self.msg_id)
 
         # values to be returned in case of unsuccessfull sending data
         command_recv = b""
@@ -507,9 +513,18 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
             else:
                 return command_recv, payload
 
+        while True:
+            command_recv, msg_id, payload = self._read_communication_data()
+            if msg_id is None or msg_id == self.msg_id:
+                break
+
+        self.msg_id = (self.msg_id + 1) % 256
+        return command_recv, payload
+
+    def _read_communication_data(self):
         # Receive prefix: command (1 byte) + data_size (4 bytes)
         try:
-            answer = self.socket.recv(5)
+            answer = self.socket.recv(6)
         except socket.timeout:
             _log.warning('socket timeout while trying recv(5)...')
             raise
@@ -520,9 +535,10 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
 
         if answer:
             command_recv = answer[0]
-            data_size = struct.unpack(">I", answer[1:])[0]
+            msg_id = struct.unpack('B', answer[1])[0]
+            data_size = struct.unpack(">I", answer[2:])[0]
         else:
-            return command_recv, payload
+            return command_recv, None, payload
 
         # Receive data/payload
         if data_size:
@@ -537,6 +553,6 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
             except ConnectionResetError:
                 # This except might happen when server is suddenly stopped
                 _log.warning('conn reset error while processing data...')
-                return command_recv, payload
+                return command_recv, msg_id, payload
 
-        return command_recv, payload
+        return command_recv, msg_id, payload
