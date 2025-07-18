@@ -522,6 +522,8 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
         return command_recv, payload
 
     def _read_communication_data(self):
+        command_recv = b""
+        payload = b""
         # Receive prefix: command (1 byte) + data_size (4 bytes)
         try:
             answer = self.socket.recv(6)
@@ -535,7 +537,7 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
 
         if answer:
             command_recv = answer[0]
-            msg_id = struct.unpack('B', answer[1])[0]
+            msg_id = answer[1]
             data_size = struct.unpack(">I", answer[2:])[0]
         else:
             return command_recv, None, payload
