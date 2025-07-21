@@ -1,16 +1,15 @@
 # ETH-BRIDGE - SERVER APPLICATION
-> **Patricia Nallin**  
+> **Patricia Nallin**
 > [patricia.nallin@lnls.br](patricia.nallin@lnls.br)
 >
-> LNLS - Brazilian Synchrotron Light Laboratory  
-> CNPEM - Brazilian Center for Research in Energy and Materials  
+> LNLS - Brazilian Synchrotron Light Laboratory
+> CNPEM - Brazilian Center for Research in Energy and Materials
 
 
 
 This python module was developed to run PRUserial485 commands remotely in a Beaglebone Black from any other workstation/device, based on TCP/IP socket connections.
 
 - **Port 5000**: for write/read commands, operations directly using serial RS485, which depends on the equipment response or serial line availability (blocking functions).
-- **Port 6000**: for general commands, which only depends on BBB memory access and answer is always immediate.
 
 To find out whether ports 5000 and 6000 are available for connecting, you may use `wait-for-it`.
 
@@ -26,7 +25,7 @@ Server service **is not launched automatically** every BBB booting. **Once all B
 
 ## Commands overview
 
-Commands/replies for interfacing PRUserial485 with eth-bridge are byte-structured into 
+Commands/replies for interfacing PRUserial485 with eth-bridge are byte-structured into
 
 `CODE (1 byte) | PAYLOAD SIZE (4 bytes, 32-bit int) | PAYLOAD (n bytes)`
 
@@ -47,21 +46,12 @@ Payload carries function arguments/returns.
 
 ----
 
-### General Functions - Port 6000
-
-| Function       | Code         | Payload       | Total payload length (bytes)
-| :-            | :-            | :-            | :-            |
-| `PRUserial485_open(baudrate, mode)`<br>*Open and configure PRUserial485 serial interface and memory mapping* | \x00 | **- baudrate:** uint16 - 2 bytes - baudrate for serial interface initialization <br> **- mode:** char/uint8 - 1 byte - mode for RS485 line. b'M' for master or b'S' for slave mode | 3 |
-| TO DO | TODO | TODO | TODO |
-| ... | ... | ... | ... |
-
-
 
 
 ### Example:
 - Function: PRUserial485_open(6, b'M')
 - eth-bridge code: \x00
-- Arguments (3 bytes): 
+- Arguments (3 bytes):
     - baudrate: uint16 (6 -> \x0006)
     - mode: char (uint8) ('M' -> 'M' = \x4d)
 

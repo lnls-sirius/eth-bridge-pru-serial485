@@ -124,7 +124,7 @@ def clientThread(client_connection, client_info, conn_port):
 
                 # Put operation in Queue
                 if len(message) == data_size:
-                    if (conn_port == SERVER_PORT) and any([ord(cmd) == command for cmd in RW_COMMANDS]):
+                    if (conn_port == SERVER_PORT) and any([ord(cmd) == command for cmd in COMMANDS]):
                         queue.put(
                             [command, msg_id, message, client_connection])
                     else:

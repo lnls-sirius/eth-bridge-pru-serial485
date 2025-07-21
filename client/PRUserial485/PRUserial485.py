@@ -22,8 +22,7 @@ import logging as _log
 import PRUserial485.consts as _c
 
 
-SERVER_PORT_RW = 5000
-SERVER_PORT_GENERAL = 6000
+SERVER_PORT = 5000
 DEFAULT_TIMEOUT = 1  # [s]
 
 
@@ -203,7 +202,7 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
 
     def connect_socket(self):
         """Open a socket connection."""
-        self._socket_connect(SERVER_PORT_RW)
+        self._socket_connect(SERVER_PORT)
 
     # --- aux. methods ---
 
