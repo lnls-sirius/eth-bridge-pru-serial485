@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """Ethernet bridge for PRUserial485 library.
+
 SERVER SIDE - BEAGLEBONE BLACK SCRIPT
 Author: Patricia Nallin
 
@@ -9,19 +10,15 @@ Author: Patricia Nallin
 """
 
 import logging
-import os.path
 import socket
 import struct
-import sys
 import threading
 import time
 from logging.handlers import RotatingFileHandler
 from queue import Queue
 
+import consts as _cst
 import PRUserial485 as _lib
-
-sys.path.append(os.path.abspath(os.path.join(os.path.pardir, 'common')))
-from consts import *
 
 RELEASE_DATE = 'October/2024'
 
@@ -52,16 +49,18 @@ def payload_length(payload) -> bytes:
 
 
 def validate_answer(payload: bytes, sent: bytes = b'unknown command') -> bytes:
+    """Validate answer."""
     if payload == b'' or not isinstance(payload, bytes):
         logger.error('Received empty response for {}'.format(sent))
         if not payload:
-            return ANSWER_NOQUEUE
-        return ANSWER_ERR + payload
+            return _cst.ANSWER_NOQUEUE
+        return _cst.ANSWER_ERR + payload
     else:
-        return ANSWER_OK + payload
+        return _cst.ANSWER_OK + payload
 
 
-def processThread():
+def process_thread():
+    """Process thread."""
     global read_data
     unpack_float = struct.Struct('>f').unpack
     pack_unsigned_byte = struct.Struct('B').pack
@@ -75,7 +74,7 @@ def processThread():
         answer = b''
 
         # Verification and implementation
-        if item[0] == COMMAND_PRUserial485_write:
+        if item[0] == _cst.COMMAND_PRUserial485_write:
             timeout = unpack_float(item[2][:4])[0]
             data = item[2][4:]
             res = _lib.PRUserial485_write(data, timeout)
@@ -83,10 +82,10 @@ def processThread():
             read_data[client] = _lib.PRUserial485_read()
             answer = validate_answer(pack_unsigned_byte(res), data)
 
-        elif item[0] == COMMAND_PRUserial485_read:
+        elif item[0] == _cst.COMMAND_PRUserial485_read:
             answer = validate_answer(read_data[client], b'read')
 
-        elif item[0] == COMMAND_PRUserial485_request:
+        elif item[0] == _cst.COMMAND_PRUserial485_request:
             timeout = unpack_float(item[2][:4])[0]
             data = item[2][4:]
             res = _lib.PRUserial485_write(data, timeout)
@@ -94,7 +93,8 @@ def processThread():
         client.sendall(payload_length(item[0] + msg_id + answer))
 
 
-def clientThread(client_connection, client_info, conn_port):
+def client_thread(client_connection, client_info, conn_port):
+    """Client thread."""
     global connected_clients, read_data
     connected_clients.append(client_info)
     read_data[client_connection] = []
@@ -119,7 +119,7 @@ def clientThread(client_connection, client_info, conn_port):
                     struct.pack('ll', 0, 500000),
                 )
 
-                for i in range(int(data_size / 4096)):
+                for _ in range(int(data_size / 4096)):
                     message += client_connection.recv(4096, socket.MSG_WAITALL)
                 message += client_connection.recv(
                     int(data_size % 4096), socket.MSG_WAITALL
@@ -135,13 +135,14 @@ def clientThread(client_connection, client_info, conn_port):
                 # Put operation in Queue
                 if len(message) == data_size:
                     if (conn_port == SERVER_PORT) and any(
-                        [ord(cmd) == command for cmd in COMMANDS]
+                        [ord(cmd) == command for cmd in _cst.COMMANDS]
                     ):
                         queue.put(
                             [command, msg_id, message, client_connection]
                         )
                     else:
-                        ans = struct.pack('B', command) + msg_id + ANSWER_ERR
+                        ans = struct.pack('B', command) + msg_id
+                        ans += _cst.ANSWER_ERR
                         client_connection.sendall(payload_length(ans))
             else:
                 connected_clients.remove(client_info)
@@ -164,7 +165,8 @@ def clientThread(client_connection, client_info, conn_port):
         )
 
 
-def connectionThread(conn_port):
+def connection_thread(conn_port):
+    """Connection thread."""
     global connected_clients
     while True:
         try:
@@ -205,7 +207,7 @@ def connectionThread(conn_port):
                 )
 
                 new_client_thread = threading.Thread(
-                    target=clientThread,
+                    target=client_thread,
                     args=[connection, client_info, conn_port],
                 )
                 new_client_thread.setDaemon(True)
@@ -213,11 +215,12 @@ def connectionThread(conn_port):
 
         except Exception:
             server_socket.close()
-            logger.error('Connection problem on port {}: ', exc_info=True)
+            logger.exception('Connection problem on port {}: ', exc_info=True)
             time.sleep(5)
 
 
 def daemon_server():
+    """Daemon server."""
     while True:
         try:
             # Opens a Daemon TCP/IP socket - To signalize whether
@@ -235,7 +238,7 @@ def daemon_server():
 
         except Exception:
             daemon_socket.close()
-            logger.error(
+            logger.exception(
                 'Connection problem on daemon port {}: ', exc_info=True
             )
             time.sleep(1)
@@ -249,7 +252,7 @@ if __name__ == '__main__':
     )
 
     file_handler = RotatingFileHandler(
-        LOG_FILE_PATH, maxBytes=15000000, backupCount=5
+        _cst.LOG_FILE_PATH, maxBytes=15000000, backupCount=5
     )
     file_handler.setFormatter(formatter)
 
@@ -267,13 +270,13 @@ if __name__ == '__main__':
     queue = Queue()
 
     # Create and start process threads
-    process = threading.Thread(target=processThread)
-    process.setDaemon(True)
+    process = threading.Thread(target=process_thread)
+    process.daemon = True
     process.start()
 
     # Create and start connection threads
-    connection = threading.Thread(target=connectionThread, args=[SERVER_PORT])
-    connection.setDaemon(True)
+    connection = threading.Thread(target=connection_thread, args=[SERVER_PORT])
+    connection.daemon = True
     connection.start()
 
     while True:
