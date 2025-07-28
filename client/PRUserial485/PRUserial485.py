@@ -516,6 +516,8 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
         while True:
             command_recv, msg_id, payload = self._read_communication_data()
             if msg_id is None or msg_id == self.msg_id:
+                _log.warning(
+                    'inconsistent msg_id received!')
                 break
 
         self.msg_id = (self.msg_id + 1) % 256
