@@ -1,8 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-"""
-Ethernet bridge for PRUserial485 library.
+"""Ethernet bridge for PRUserial485 library.
 
 CLIENT SIDE - PRUserial485 via Ethernet bridge
 Author: Patricia Nallin
@@ -20,6 +19,7 @@ import socket
 import struct
 from threading import Thread, Event
 from queue import Queue, Empty
+import logging as _log
 
 import PRUserial485.consts as _c
 
@@ -65,8 +65,9 @@ class _EthBridgeClientCommonInterface:
         """."""
         # IP
         self._bbb_ip = self._check_ip_address(ip_address)
-        #self._bbb_ip = ip_address
+        # self._bbb_ip = ip_address
         self.socket = None
+        self.msg_id = 0
 
     def open(self, baudrate: int = 6, mode: bytes = b"M") -> int:
         """Procedimento de inicialização da PRU."""
@@ -181,12 +182,17 @@ class _EthBridgeClientCommonInterface:
             raise ValueError("Invalid IP")
 
     @staticmethod
-    def _payload_length(payload):
+    def _payload_length(payload, msg_id):
         """Inserts payload length at payload's second byte"""
-        return struct.pack("B", payload[0]) + struct.pack(">I", (len(payload) - 1)) + payload[1:]
+        return (
+            struct.pack("B", payload[0]) +  # function code 1 byte
+            struct.pack("B", msg_id) +  # message id 1 byte
+            struct.pack(">I", (len(payload) - 1)) +  # size 4 bytes
+            payload[1:]  # message
+        )
 
     def _socket_connect(self, conn_port):
-        """Creates socket connection"""
+        """Create socket connection."""
         if self._bbb_ip is None:
             raise ValueError("BeagleBone IP address undefined!")
 
@@ -476,7 +482,7 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
 
     def _send_communication_data(self, payload):
         """."""
-        datalen = EthBridgeClient._payload_length(payload)
+        datalen = EthBridgeClient._payload_length(payload, self.msg_id)
 
         # values to be returned in case of unsuccessfull sending data
         command_recv = b""
@@ -485,8 +491,10 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
         try:
             self.socket.sendall(datalen)
         except socket.timeout:
+            _log.warning('socket timeout while trying sendall...')
             raise
-        except Exception:
+        except Exception as err0:
+            _log.warning('exception while trying sendall: ' + str(err0))
             self.socket = None
             for _ in range(3):
                 # Try reconnecting 3 times if remote socket is not available
@@ -495,37 +503,60 @@ class EthBridgeClient(_EthBridgeClientCommonInterface):
                     self.socket.sendall(datalen)
                     break
                 except socket.timeout:
-                    raise 
+                    _log.warning(
+                        'socket timeout while after first exception...')
+                    raise
                 except Exception:
+                    _log.warning(
+                        'second exception after first exception...')
                     self.socket = None
             else:
                 return command_recv, payload
 
+        while True:
+            command_recv, msg_id, payload = self._read_communication_data()
+            if msg_id is None or msg_id == self.msg_id:
+                _log.warning(
+                    'inconsistent msg_id received!')
+                break
+
+        self.msg_id = (self.msg_id + 1) % 256
+        return command_recv, payload
+
+    def _read_communication_data(self):
+        command_recv = b""
+        payload = b""
         # Receive prefix: command (1 byte) + data_size (4 bytes)
         try:
-            answer = self.socket.recv(5)
+            answer = self.socket.recv(6)
         except socket.timeout:
+            _log.warning('socket timeout while trying recv(6)...')
             raise
         except ConnectionResetError:
             # This except might happen when server is suddenly stopped
+            _log.warning('conn reset error while trying recv(6)...')
             answer = []
 
         if answer:
             command_recv = answer[0]
-            data_size = struct.unpack(">I", answer[1:])[0]
+            msg_id = answer[1]
+            data_size = struct.unpack(">I", answer[2:])[0]
         else:
-            return command_recv, payload
+            return command_recv, None, payload
 
         # Receive data/payload
         if data_size:
             try:
                 for _ in range(int(data_size / 4096)):
                     payload += self.socket.recv(4096, socket.MSG_WAITALL)
-                payload += self.socket.recv(int(data_size % 4096), socket.MSG_WAITALL)
+                payload += self.socket.recv(
+                    int(data_size % 4096), socket.MSG_WAITALL)
             except socket.timeout:
+                _log.warning('socket timeout while processing data...')
                 raise
             except ConnectionResetError:
                 # This except might happen when server is suddenly stopped
-                return command_recv, payload
+                _log.warning('conn reset error while processing data...')
+                return command_recv, msg_id, payload
 
-        return command_recv, payload
+        return command_recv, msg_id, payload
