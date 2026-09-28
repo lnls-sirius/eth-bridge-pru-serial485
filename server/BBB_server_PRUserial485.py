@@ -11,6 +11,7 @@ Author: Patricia Nallin
 RELEASE_DATE = "October/2024"
 
 import logging
+import math
 import os.path
 import socket
 import struct
@@ -51,6 +52,21 @@ def payload_length(payload) -> bytes:
         struct.pack(">I", (len(payload)-1)) +
         payload[2:]
     )
+
+
+# PRUserial485_write's own documented range for its timeout argument.
+MAX_PRUSERIAL485_TIMEOUT = 64.0
+
+
+def sanitize_timeout(timeout: float) -> float:
+    """Clamp a client-supplied timeout to a safe, finite range. """
+    if not math.isfinite(timeout):
+        logger.warning("Received non-finite timeout ({}), using 0 instead".format(timeout))
+        return 0.0
+    clamped = max(0.0, min(timeout, MAX_PRUSERIAL485_TIMEOUT))
+    if clamped != timeout:
+        logger.warning("Received out-of-range timeout ({}), clamped to {}".format(timeout, clamped))
+    return clamped
 
 
 def validate_answer(payload: bytes, sent: bytes = b"unknown command") -> bytes:
@@ -182,7 +198,7 @@ def processThread_rw():
 
             # Verification and implementation
             if (item[0] == COMMAND_PRUserial485_write):
-                timeout = unpack_float(item[2][:4])[0]
+                timeout = sanitize_timeout(unpack_float(item[2][:4])[0])
                 data = item[2][4:]
                 res = _lib.PRUserial485_write(data, timeout)
 
@@ -193,7 +209,7 @@ def processThread_rw():
                 answer = validate_answer(read_data[client], b"read")
 
             elif (item[0] == COMMAND_PRUserial485_request):
-                timeout = unpack_float(item[2][:4])[0]
+                timeout = sanitize_timeout(unpack_float(item[2][:4])[0])
                 data = item[2][4:]
                 res = _lib.PRUserial485_write(data, timeout)
                 answer = validate_answer(_lib.PRUserial485_read(), data)
