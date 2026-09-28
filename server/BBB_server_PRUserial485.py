@@ -377,4 +377,29 @@ if (__name__ == '__main__'):
     # daemon_thread.start()
 
     while (True):
-        time.sleep(10)
+        time.sleep(60)
+
+        # Watchdog: these are single, long-lived threads shared by every
+        # client. If either dies, every subsequent client request of that
+        # kind hangs forever with nothing logged to explain why. The following
+        # commands attempt to detect that early.
+        if not process_general.is_alive():
+            logger.error(
+                "processThread_general is dead, general commands "
+                "(address, version, curve, ...) are no longer being served"
+            )
+        if not process_rw.is_alive():
+            logger.error(
+                "processThread_rw is dead, write/read/request commands "
+                "are no longer being served"
+            )
+        if not connection_general.is_alive():
+            logger.error(
+                "connectionThread for port {} is dead, no new clients can "
+                "connect on it".format(SERVER_PORT_GENERAL)
+            )
+        if not connection_rw.is_alive():
+            logger.error(
+                "connectionThread for port {} is dead, no new clients can "
+                "connect on it".format(SERVER_PORT_RW)
+            )
