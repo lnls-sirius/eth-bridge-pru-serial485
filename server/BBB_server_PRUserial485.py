@@ -67,93 +67,102 @@ def processThread_general():
     while (True):
         # Get next operation
         item = queue_general.get(block=True)
-        item[0] = struct.pack("B", item[0])
         client = item[2]
-        answer = b''
 
-        # Verification and implementation
-        if (item[0] == COMMAND_PRUserial485_open):
-            baudrate = struct.unpack(">I", item[1][1:])[0]
-            mode = item[1][:1]
-            res = _lib.PRUserial485_open(baudrate, mode)
-            answer = (ANSWER_OK + struct.pack("B", res))
+        try:
+            item[0] = struct.pack("B", item[0])
+            answer = b''
 
-        elif (item[0] == COMMAND_PRUserial485_address):
-            res = _lib.PRUserial485_address()
-            answer = (ANSWER_OK + struct.pack("B", res))
+            # Verification and implementation
+            if (item[0] == COMMAND_PRUserial485_open):
+                baudrate = struct.unpack(">I", item[1][1:])[0]
+                mode = item[1][:1]
+                res = _lib.PRUserial485_open(baudrate, mode)
+                answer = (ANSWER_OK + struct.pack("B", res))
 
-        elif (item[0] == COMMAND_PRUserial485_close):
-            _lib.PRUserial485_close()
-            answer = (ANSWER_OK)
+            elif (item[0] == COMMAND_PRUserial485_address):
+                res = _lib.PRUserial485_address()
+                answer = (ANSWER_OK + struct.pack("B", res))
 
-        elif (item[0] == COMMAND_PRUserial485_curve):
-            block = item[1][0]
-            curve_size = int((len(item[1])-1) / 16)
-            curves = []
-            for curve in range(4):
-                curves.append([struct.unpack(">f", item[1][4*i + 1:4*i+4 + 1])[0] for i in range((curve*curve_size), (curve+1)*curve_size)])
-            res = _lib.PRUserial485_curve(block, [curves[0], curves[1], curves[2], curves[3]])
-            answer = (ANSWER_OK + struct.pack("B", res))
+            elif (item[0] == COMMAND_PRUserial485_close):
+                _lib.PRUserial485_close()
+                answer = (ANSWER_OK)
 
-        elif (item[0] == COMMAND_PRUserial485_set_curve_block):
-            _lib.PRUserial485_set_curve_block(item[1][0])
-            answer = (ANSWER_OK)
+            elif (item[0] == COMMAND_PRUserial485_curve):
+                block = item[1][0]
+                curve_size = int((len(item[1])-1) / 16)
+                curves = []
+                for curve in range(4):
+                    curves.append([struct.unpack(">f", item[1][4*i + 1:4*i+4 + 1])[0] for i in range((curve*curve_size), (curve+1)*curve_size)])
+                res = _lib.PRUserial485_curve(block, [curves[0], curves[1], curves[2], curves[3]])
+                answer = (ANSWER_OK + struct.pack("B", res))
 
-        elif (item[0] == COMMAND_PRUserial485_read_curve_block):
-            res = _lib.PRUserial485_read_curve_block()
-            answer = (ANSWER_OK + struct.pack("B", res))
+            elif (item[0] == COMMAND_PRUserial485_set_curve_block):
+                _lib.PRUserial485_set_curve_block(item[1][0])
+                answer = (ANSWER_OK)
 
-        elif (item[0] == COMMAND_PRUserial485_set_curve_pointer):
-            new_pointer = struct.unpack(">I", item[1])[0]
-            _lib.PRUserial485_set_curve_pointer(new_pointer)
-            answer = (ANSWER_OK)
+            elif (item[0] == COMMAND_PRUserial485_read_curve_block):
+                res = _lib.PRUserial485_read_curve_block()
+                answer = (ANSWER_OK + struct.pack("B", res))
 
-        elif (item[0] == COMMAND_PRUserial485_read_curve_pointer):
-            res = _lib.PRUserial485_read_curve_pointer()
-            answer = (ANSWER_OK + struct.pack(">I", res))
+            elif (item[0] == COMMAND_PRUserial485_set_curve_pointer):
+                new_pointer = struct.unpack(">I", item[1])[0]
+                _lib.PRUserial485_set_curve_pointer(new_pointer)
+                answer = (ANSWER_OK)
 
-        elif (item[0] == COMMAND_PRUserial485_sync_start):
-            sync_mode = item[1][0]
-            delay = struct.unpack(">I", item[1][1:5])[0]
-            sync_address = item[1][5]
-            _lib.PRUserial485_sync_start(sync_mode, delay, sync_address)
-            answer = (ANSWER_OK)
+            elif (item[0] == COMMAND_PRUserial485_read_curve_pointer):
+                res = _lib.PRUserial485_read_curve_pointer()
+                answer = (ANSWER_OK + struct.pack(">I", res))
 
-        elif (item[0] == COMMAND_PRUserial485_sync_stop):
-            _lib.PRUserial485_sync_stop()
-            answer = (ANSWER_OK)
+            elif (item[0] == COMMAND_PRUserial485_sync_start):
+                sync_mode = item[1][0]
+                delay = struct.unpack(">I", item[1][1:5])[0]
+                sync_address = item[1][5]
+                _lib.PRUserial485_sync_start(sync_mode, delay, sync_address)
+                answer = (ANSWER_OK)
 
-        elif (item[0] == COMMAND_PRUserial485_sync_status):
-            if _lib.PRUserial485_sync_status():
-                res = b'\x01'
-            else:
-                res = b'\x00'
-            answer = (ANSWER_OK + res)
+            elif (item[0] == COMMAND_PRUserial485_sync_stop):
+                _lib.PRUserial485_sync_stop()
+                answer = (ANSWER_OK)
 
-        elif (item[0] == COMMAND_PRUserial485_read_pulse_count_sync):
-            res = _lib.PRUserial485_read_pulse_count_sync()
-            answer = (ANSWER_OK + struct.pack(">I", res))
+            elif (item[0] == COMMAND_PRUserial485_sync_status):
+                if _lib.PRUserial485_sync_status():
+                    res = b'\x01'
+                else:
+                    res = b'\x00'
+                answer = (ANSWER_OK + res)
 
-        elif (item[0] == COMMAND_PRUserial485_clear_pulse_count_sync):
-            res = _lib.PRUserial485_clear_pulse_count_sync()
-            answer = (ANSWER_OK + struct.pack("B", res))
+            elif (item[0] == COMMAND_PRUserial485_read_pulse_count_sync):
+                res = _lib.PRUserial485_read_pulse_count_sync()
+                answer = (ANSWER_OK + struct.pack(">I", res))
 
-        elif (item[0] == COMMAND_PRUserial485_version):
-            try:
-                libversion = _lib.__version__()
-            except Exception:
-                logger.exception("processThread_general: failed to read library version")
-                libversion = "unknown"
-            answer = (ANSWER_OK + libversion.encode())
+            elif (item[0] == COMMAND_PRUserial485_clear_pulse_count_sync):
+                res = _lib.PRUserial485_clear_pulse_count_sync()
+                answer = (ANSWER_OK + struct.pack("B", res))
 
-        elif (item[0] == COMMAND_PRUserial485_server_eth_version):
-            with open(VERSION_FILE_PATH, 'r') as _f:
-                server_version = _f.read().strip()
-            server_version += ":" + subprocess.getoutput('git log --format=%h -1')
-            answer = (ANSWER_OK + server_version.encode())
+            elif (item[0] == COMMAND_PRUserial485_version):
+                try:
+                    libversion = _lib.__version__()
+                except Exception:
+                    logger.exception("processThread_general: failed to read library version")
+                    libversion = "unknown"
+                answer = (ANSWER_OK + libversion.encode())
 
-        answer = item[0] + answer[1:]
-        client.sendall(payload_length(answer))
+            elif (item[0] == COMMAND_PRUserial485_server_eth_version):
+                with open(VERSION_FILE_PATH, 'r') as _f:
+                    server_version = _f.read().strip()
+                server_version += ":" + subprocess.getoutput('git log --format=%h -1')
+                answer = (ANSWER_OK + server_version.encode())
+
+            answer = item[0] + answer[1:]
+            client.sendall(payload_length(answer))
+
+        except Exception:
+            # A single malformed/unexpected item must never kill this shared
+            # worker thread, if it did, every client's general commands
+            # (address, version, curve, ...) would hang forever afterward,
+            # with nothing left to log why.
+            logger.exception("processThread_general: failed to process item, thread stays alive")
 
 
 def processThread_rw():
@@ -164,29 +173,40 @@ def processThread_rw():
     while (True):
         # Get next operation
         item = queue_rw.get(block=True)
-        item[0] = pack_unsigned_byte(item[0])
-        msg_id = pack_unsigned_byte(item[1])
         client = item[3]
-        answer = b''
 
-        # Verification and implementation
-        if (item[0] == COMMAND_PRUserial485_write):
-            timeout = unpack_float(item[2][:4])[0]
-            data = item[2][4:]
-            res = _lib.PRUserial485_write(data, timeout)
+        try:
+            item[0] = pack_unsigned_byte(item[0])
+            msg_id = pack_unsigned_byte(item[1])
+            answer = b''
 
-            read_data[client] = _lib.PRUserial485_read()
-            answer = validate_answer(pack_unsigned_byte(res), data)
+            # Verification and implementation
+            if (item[0] == COMMAND_PRUserial485_write):
+                timeout = unpack_float(item[2][:4])[0]
+                data = item[2][4:]
+                res = _lib.PRUserial485_write(data, timeout)
 
-        elif (item[0] == COMMAND_PRUserial485_read):
-            answer = validate_answer(read_data[client], b"read")
+                read_data[client] = _lib.PRUserial485_read()
+                answer = validate_answer(pack_unsigned_byte(res), data)
 
-        elif (item[0] == COMMAND_PRUserial485_request):
-            timeout = unpack_float(item[2][:4])[0]
-            data = item[2][4:]
-            res = _lib.PRUserial485_write(data, timeout)
-            answer = validate_answer(_lib.PRUserial485_read(), data)
-        client.sendall(payload_length(item[0] + msg_id + answer))
+            elif (item[0] == COMMAND_PRUserial485_read):
+                answer = validate_answer(read_data[client], b"read")
+
+            elif (item[0] == COMMAND_PRUserial485_request):
+                timeout = unpack_float(item[2][:4])[0]
+                data = item[2][4:]
+                res = _lib.PRUserial485_write(data, timeout)
+                answer = validate_answer(_lib.PRUserial485_read(), data)
+
+            client.sendall(payload_length(item[0] + msg_id + answer))
+
+        except Exception:
+            # Same reasoning as processThread_general: this is the single
+            # shared worker for every client's write/read/request commands.
+            # An unhandled exception here would kill it permanently, silently
+            # hanging every subsequent RW request for every client from then
+            # on, with nothing logged to explain why.
+            logger.exception("processThread_rw: failed to process item, thread stays alive")
 
 
 def clientThread(client_connection, client_info, conn_port):
