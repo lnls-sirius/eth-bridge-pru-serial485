@@ -248,7 +248,7 @@ def clientThread(client_connection, client_info, conn_port):
                             [command, msg_id, message, client_connection])
 
                     else:
-                        ans = struct.pack("B", command) + msg_id + ANSWER_ERR
+                        ans = struct.pack("B", command) + struct.pack("B", msg_id) + ANSWER_ERR
                         client_connection.sendall(payload_length(ans))
             else:
                 connected_clients[conn_port].remove(client_info)
