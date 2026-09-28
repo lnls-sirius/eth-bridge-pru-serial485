@@ -141,11 +141,9 @@ def processThread_general():
         elif (item[0] == COMMAND_PRUserial485_version):
             try:
                 libversion = _lib.__version__()
-            except:
-                try:
-                    libversion = _lib.__version__()
-                except:
-                    pass
+            except Exception:
+                logger.exception("processThread_general: failed to read library version")
+                libversion = "unknown"
             answer = (ANSWER_OK + libversion.encode())
 
         elif (item[0] == COMMAND_PRUserial485_server_eth_version):
